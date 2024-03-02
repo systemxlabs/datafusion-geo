@@ -1,21 +1,21 @@
 use crate::array::util::check_nulls;
 use crate::array::{GeometryArrayAccessor, GeometryArrayTrait};
 use crate::buffer::CoordBuffer;
-use crate::scalar::MultiPoint;
+use crate::scalar::{GeometryScalarTrait, LineString};
 use crate::DFResult;
 use arrow::array::OffsetSizeTrait;
 use arrow::buffer::{NullBuffer, OffsetBuffer};
-use datafusion::error::DataFusionError;
+use datafusion::common::DataFusionError;
 use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
-pub struct MultiPointArray<O: OffsetSizeTrait> {
+pub struct LineStringArray<O: OffsetSizeTrait> {
     pub(crate) coords: CoordBuffer,
     pub(crate) geom_offsets: OffsetBuffer<O>,
     pub(crate) nulls: Option<NullBuffer>,
 }
 
-impl<O: OffsetSizeTrait> MultiPointArray<O> {
+impl<O: OffsetSizeTrait> LineStringArray<O> {
     pub fn try_new(
         coords: CoordBuffer,
         geom_offsets: OffsetBuffer<O>,
@@ -37,7 +37,7 @@ impl<O: OffsetSizeTrait> MultiPointArray<O> {
     }
 }
 
-impl<O: OffsetSizeTrait> GeometryArrayTrait for MultiPointArray<O> {
+impl<O: OffsetSizeTrait> GeometryArrayTrait for LineStringArray<O> {
     fn nulls(&self) -> Option<&NullBuffer> {
         self.nulls.as_ref()
     }
@@ -47,16 +47,16 @@ impl<O: OffsetSizeTrait> GeometryArrayTrait for MultiPointArray<O> {
     }
 }
 
-impl<'a, O: OffsetSizeTrait> GeometryArrayAccessor<'a> for MultiPointArray<O> {
-    fn value(&'a self, index: usize) -> DFResult<Option<MultiPoint<'a, O>>> {
+impl<'a, O: OffsetSizeTrait> GeometryArrayAccessor<'a> for LineStringArray<O> {
+    fn value(&'a self, index: usize) -> DFResult<Option<LineString<'a, O>>> {
         if self.is_null(index) {
             return Ok(None);
         }
-        let multi_point = MultiPoint::try_new(
+        let line_string = LineString::try_new(
             Cow::Borrowed(&self.coords),
             Cow::Borrowed(&self.geom_offsets),
             index,
         )?;
-        Ok(Some(multi_point))
+        Ok(Some(line_string))
     }
 }

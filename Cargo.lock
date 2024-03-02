@@ -781,6 +781,7 @@ dependencies = [
  "datafusion",
  "geo",
  "geos",
+ "strum 0.26.1",
  "tokio",
 ]
 

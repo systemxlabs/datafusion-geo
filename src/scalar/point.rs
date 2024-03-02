@@ -42,13 +42,13 @@ impl<'a> GeometryScalarTrait for Point<'a> {
 
     #[cfg(feature = "geos")]
     fn to_geos(&self) -> DFResult<geos::Geometry> {
-        let mut coord_seq = geos::CoordSeq::new(1, geos::CoordDimensions::TwoD)?;
-        coord_seq.set_x(0, self.x())?;
-        coord_seq.set_y(0, self.y())?;
+        let error = DataFusionError::Internal("Cannot convert point to geos Geometry".to_string());
+        let mut coord_seq =
+            geos::CoordSeq::new(1, geos::CoordDimensions::TwoD).map_err(|e| error)?;
+        coord_seq.set_x(0, self.x()).map_err(|e| error)?;
+        coord_seq.set_y(0, self.y()).map_err(|e| error)?;
 
-        geos::Geometry::create_point(coord_seq).map_err(|e| {
-            DataFusionError::Internal("Cannot convert point to geos Geometry".to_string())
-        })
+        geos::Geometry::create_point(coord_seq).map_err(|e| error)
     }
 }
 
@@ -61,6 +61,12 @@ impl From<Point<'_>> for geo::Point {
 impl From<&Point<'_>> for geo::Point {
     fn from(value: &Point<'_>) -> Self {
         geo::Point::new(value.x(), value.y())
+    }
+}
+
+impl From<Point<'_>> for geo::Coord {
+    fn from(value: Point<'_>) -> Self {
+        (&value).into()
     }
 }
 

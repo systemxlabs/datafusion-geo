@@ -1,6 +1,7 @@
+use crate::array::util::check_nulls;
 use crate::array::{GeometryArrayAccessor, GeometryArrayTrait};
 use crate::buffer::CoordBuffer;
-use crate::scalar::{GeometryScalarTrait, Point};
+use crate::scalar::Point;
 use crate::DFResult;
 use arrow::array::{Array, FixedSizeListArray};
 use arrow::buffer::NullBuffer;
@@ -11,25 +12,19 @@ use std::borrow::Cow;
 #[derive(Debug, Clone)]
 pub struct PointArray {
     pub(crate) coords: CoordBuffer,
-    pub(crate) validity: Option<NullBuffer>,
+    pub(crate) nulls: Option<NullBuffer>,
 }
 
 impl PointArray {
-    pub fn try_new(coords: CoordBuffer, validity: Option<NullBuffer>) -> DFResult<Self> {
-        if let Some(validity_buf) = &validity {
-            if validity_buf.len() != coords.len() {
-                return Err(DataFusionError::Internal(
-                    "validity mask length must match the number of values".to_string(),
-                ));
-            }
-        }
-        Ok(Self { coords, validity })
+    pub fn try_new(coords: CoordBuffer, nulls: Option<NullBuffer>) -> DFResult<Self> {
+        check_nulls(&nulls, coords.len())?;
+        Ok(Self { coords, nulls })
     }
 }
 
 impl GeometryArrayTrait for PointArray {
-    fn validity(&self) -> Option<&NullBuffer> {
-        self.validity.as_ref()
+    fn nulls(&self) -> Option<&NullBuffer> {
+        self.nulls.as_ref()
     }
 
     fn len(&self) -> usize {
@@ -38,9 +33,7 @@ impl GeometryArrayTrait for PointArray {
 }
 
 impl<'a> GeometryArrayAccessor<'a> for PointArray {
-    type Item = Point<'a>;
-
-    fn value(&'a self, index: usize) -> DFResult<Option<Self::Item>> {
+    fn value(&'a self, index: usize) -> DFResult<Option<Point<'a>>> {
         if self.is_null(index) {
             Ok(None)
         } else {

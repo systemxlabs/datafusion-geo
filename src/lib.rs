@@ -1,6 +1,7 @@
-mod algorithm;
-mod array;
+pub mod algorithm;
+pub mod array;
 pub(crate) mod buffer;
-pub(crate) mod scalar;
+pub mod function;
+pub mod scalar;
 
 pub type DFResult<T> = datafusion::error::Result<T>;

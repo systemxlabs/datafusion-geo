@@ -39,6 +39,17 @@ impl CoordBuffer {
     pub fn len(&self) -> usize {
         self.coords.len() / 2
     }
+
+    pub(crate) fn slice(&self, offset: usize, length: usize) -> DFResult<Self> {
+        if offset + length <= self.len() {
+            return Err(DataFusionError::Internal(
+                "offset + length may not exceed length of array".to_string(),
+            ));
+        }
+        Ok(Self {
+            coords: self.coords.slice(offset * 2, length * 2),
+        })
+    }
 }
 
 impl From<CoordBuffer> for FixedSizeListArray {
@@ -85,5 +96,16 @@ impl TryFrom<&[f64]> for CoordBuffer {
 
     fn try_from(value: &[f64]) -> Result<Self, Self::Error> {
         Self::try_new(Buffer::from_slice_ref(value).into())
+    }
+}
+
+#[cfg(feature = "geos")]
+impl TryFrom<CoordBuffer> for geos::CoordSeq<'_> {
+    type Error = DataFusionError;
+
+    fn try_from(value: CoordBuffer) -> Result<Self, Self::Error> {
+        geos::CoordSeq::new_from_buffer(&value.coords, value.len(), false, false).map_err(|e| {
+            DataFusionError::Internal("Cannot convert coord buffer to geos CoordSeq".to_string())
+        })
     }
 }

@@ -8,7 +8,7 @@ use datafusion::common::DataFusionError;
 use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
-pub struct MultiPoint<'a, O: OffsetSizeTrait> {
+pub struct LineString<'a, O: OffsetSizeTrait> {
     pub(crate) coords: Cow<'a, CoordBuffer>,
     pub(crate) geom_offsets: Cow<'a, OffsetBuffer<O>>,
     pub(crate) geom_index: usize,
@@ -16,7 +16,7 @@ pub struct MultiPoint<'a, O: OffsetSizeTrait> {
     end_offset: usize,
 }
 
-impl<'a, O: OffsetSizeTrait> MultiPoint<'a, O> {
+impl<'a, O: OffsetSizeTrait> LineString<'a, O> {
     pub fn try_new(
         coords: Cow<'a, CoordBuffer>,
         geom_offsets: Cow<'a, OffsetBuffer<O>>,
@@ -24,6 +24,7 @@ impl<'a, O: OffsetSizeTrait> MultiPoint<'a, O> {
     ) -> DFResult<Self> {
         let (start_offset, end_offset) =
             compute_start_end_offset(geom_offsets.clone(), geom_index)?;
+
         Ok(Self {
             coords,
             geom_offsets,
@@ -33,12 +34,12 @@ impl<'a, O: OffsetSizeTrait> MultiPoint<'a, O> {
         })
     }
 
-    pub fn num_points(&self) -> usize {
+    pub fn num_coords(&self) -> usize {
         self.end_offset - self.start_offset
     }
 
-    pub fn point(&self, i: usize) -> Option<Point<'_>> {
-        if i >= self.num_points() {
+    pub fn coord(&self, i: usize) -> Option<Point<'_>> {
+        if i >= self.num_coords() {
             None
         } else {
             Some(
@@ -48,37 +49,39 @@ impl<'a, O: OffsetSizeTrait> MultiPoint<'a, O> {
         }
     }
 
-    pub fn points(&self) -> impl ExactSizeIterator<Item = Point> {
-        (0..self.num_points()).map(|index| self.point(index).expect("index is valid"))
+    pub fn coords(&self) -> impl ExactSizeIterator<Item = Point> {
+        (0..self.num_coords()).map(|index| self.coord(index).expect("index is valid"))
     }
 }
 
-impl<'a, O: OffsetSizeTrait> GeometryScalarTrait for MultiPoint<'a, O> {
+impl<'a, O: OffsetSizeTrait> GeometryScalarTrait for LineString<'a, O> {
     fn to_geo(&self) -> geo::Geometry {
-        geo::Geometry::MultiPoint(self.into())
+        let coords: Vec<geo::Coord> = self.coords().map(|p| p.into()).collect();
+        geo::Geometry::LineString(geo::LineString::new(coords))
     }
 
     #[cfg(feature = "geos")]
     fn to_geos(&self) -> DFResult<geos::Geometry> {
-        geos::Geometry::create_multipoint(
-            self.points()
-                .map(|point| point.to_geos())
-                .collect::<DFResult<Vec<_>>>()?,
-        )
-        .map_err(|e| {
-            DataFusionError::Internal("Cannot convert multipoint to geos Geometry".to_string())
+        let sliced_coords = self
+            .coords
+            .clone()
+            .to_mut()
+            .slice(self.start_offset, self.end_offset - self.start_offset)?;
+        geos::Geometry::create_line_string(sliced_coords.try_into()?).map_err(|e| {
+            DataFusionError::Internal("Cannot convert linestring to geos linestring".to_string())
         })
     }
 }
 
-impl<O: OffsetSizeTrait> From<MultiPoint<'_, O>> for geo::MultiPoint {
-    fn from(value: MultiPoint<'_, O>) -> Self {
+impl<O: OffsetSizeTrait> From<LineString<'_, O>> for geo::LineString {
+    fn from(value: LineString<'_, O>) -> Self {
         (&value).into()
     }
 }
 
-impl<O: OffsetSizeTrait> From<&MultiPoint<'_, O>> for geo::MultiPoint {
-    fn from(value: &MultiPoint<'_, O>) -> Self {
-        geo::MultiPoint::new(value.points().map(|point| point.into()).collect())
+impl<O: OffsetSizeTrait> From<&LineString<'_, O>> for geo::LineString {
+    fn from(value: &LineString<'_, O>) -> Self {
+        let coords: Vec<geo::Coord> = value.coords().map(|p| p.into()).collect();
+        geo::LineString::new(coords)
     }
 }

@@ -2,6 +2,12 @@
 name = "datafusion-geo"
 version = "0.1.0"
 edition = "2021"
+authors = ["lewiszlw <lewiszlw520@gmail.com>"]
+description = "Add geo functionality extension to datafusion query engine."
+license = "MIT"
+repository = "https://github.com/systemxlabs/datafusion-geo"
+homepage = "https://github.com/systemxlabs/datafusion-geo"
+readme = "README.md"
 
 [features]
 geos = ["dep:geos"]
@@ -12,3 +18,4 @@ datafusion = "36"
 tokio = "1.36"
 geo = "0.28"
 geos = { version = "8.3", features = ["v3_10_0", "geo"], optional = true }
+strum = { version = "0.26", features = ["derive"]}
