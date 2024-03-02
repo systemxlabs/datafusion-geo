@@ -72,7 +72,7 @@ impl<'a, O: OffsetSizeTrait> GeometryScalarTrait for MultiPolygon<'a, O> {
     }
 
     #[cfg(feature = "geos")]
-    fn to_geos(&self) -> DFResult<geos::Geometry> {
+    fn to_geos(&self) -> DFResult<geos::Geometry<'static>> {
         geos::Geometry::create_multipolygon(
             self.polygons()
                 .map(|polygons| polygons.to_geos())

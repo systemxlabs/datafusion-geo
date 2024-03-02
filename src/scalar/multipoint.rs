@@ -59,7 +59,7 @@ impl<'a, O: OffsetSizeTrait> GeometryScalarTrait for MultiPoint<'a, O> {
     }
 
     #[cfg(feature = "geos")]
-    fn to_geos(&self) -> DFResult<geos::Geometry> {
+    fn to_geos(&self) -> DFResult<geos::Geometry<'static>> {
         geos::Geometry::create_multipoint(
             self.points()
                 .map(|point| point.to_geos())

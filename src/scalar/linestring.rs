@@ -61,7 +61,7 @@ impl<'a, O: OffsetSizeTrait> GeometryScalarTrait for LineString<'a, O> {
     }
 
     #[cfg(feature = "geos")]
-    fn to_geos(&self) -> DFResult<geos::Geometry> {
+    fn to_geos(&self) -> DFResult<geos::Geometry<'static>> {
         let sliced_coords = self
             .coords
             .clone()

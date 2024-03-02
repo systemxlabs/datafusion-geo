@@ -85,7 +85,7 @@ impl<'a, O: OffsetSizeTrait> GeometryScalarTrait for Polygon<'a, O> {
     }
 
     #[cfg(feature = "geos")]
-    fn to_geos(&self) -> DFResult<geos::Geometry> {
+    fn to_geos(&self) -> DFResult<geos::Geometry<'static>> {
         let exterior = self.exterior().to_geos()?;
         let interiors = self
             .interiors()

@@ -54,7 +54,7 @@ pub trait GeometryArrayAccessor<'a>: GeometryArrayTrait {
     }
 
     #[cfg(feature = "geos")]
-    fn value_as_geos(&'a self, i: usize) -> DFResult<Option<geos::Geometry>> {
+    fn value_as_geos(&'a self, i: usize) -> DFResult<Option<geos::Geometry<'static>>> {
         let value = self.value(i)?;
         match value {
             Some(v) => Ok(Some(v.to_geos()?)),
@@ -71,7 +71,9 @@ pub trait GeometryArrayAccessor<'a>: GeometryArrayTrait {
     }
 
     #[cfg(feature = "geos")]
-    fn iter_geos(&'a self) -> impl ExactSizeIterator<Item = DFResult<Option<geos::Geometry>>> + 'a {
+    fn iter_geos(
+        &'a self,
+    ) -> impl ExactSizeIterator<Item = DFResult<Option<geos::Geometry<'static>>>> + 'a {
         (0..self.len()).map(|i| self.value_as_geos(i))
     }
 }

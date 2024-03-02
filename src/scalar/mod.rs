@@ -20,7 +20,7 @@ pub trait GeometryScalarTrait {
     fn to_geo(&self) -> geo::Geometry;
 
     #[cfg(feature = "geos")]
-    fn to_geos(&self) -> DFResult<geos::Geometry>;
+    fn to_geos(&self) -> DFResult<geos::Geometry<'static>>;
 }
 
 #[derive(Debug, Clone)]
@@ -46,7 +46,7 @@ impl<'a, O: OffsetSizeTrait> GeometryScalarTrait for GeometryScalar<'a, O> {
     }
 
     #[cfg(feature = "geos")]
-    fn to_geos(&self) -> DFResult<geos::Geometry> {
+    fn to_geos(&self) -> DFResult<geos::Geometry<'static>> {
         match self {
             GeometryScalar::Point(v) => v.to_geos(),
             GeometryScalar::LineString(v) => v.to_geos(),
