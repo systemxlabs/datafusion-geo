@@ -109,3 +109,25 @@ impl TryFrom<CoordBuffer> for geos::CoordSeq<'_> {
         })
     }
 }
+
+#[derive(Debug)]
+pub struct CoordBufferBuilder {
+    pub coords: Vec<f64>,
+}
+
+impl CoordBufferBuilder {
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            coords: Vec::with_capacity(capacity * 2),
+        }
+    }
+
+    pub fn push_xy(&mut self, x: f64, y: f64) {
+        self.coords.push(x);
+        self.coords.push(y);
+    }
+
+    pub fn build(self) -> DFResult<CoordBuffer> {
+        CoordBuffer::try_new(self.coords.into())
+    }
+}

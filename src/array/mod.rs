@@ -20,6 +20,7 @@ use crate::scalar::{GeometryScalar, GeometryScalarTrait};
 use crate::DFResult;
 use arrow::array::OffsetSizeTrait;
 use arrow::buffer::NullBuffer;
+use datafusion::common::DataFusionError;
 use strum::{EnumIter, IntoEnumIterator};
 
 pub trait GeometryArrayTrait: Send + Sync {
@@ -172,6 +173,56 @@ impl<'a, O: OffsetSizeTrait> GeometryArrayAccessor<'a> for GeometryArray<O> {
                 Ok(multi_polygon.map(|v| GeometryScalar::MultiPolygon(v)))
             }
             GeometryArray::Mixed(arr) => arr.value(index),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum GeometryArrayBuilder<O: OffsetSizeTrait> {
+    Point(PointArrayBuilder),
+    LineString(LineStringArrayBuilder<O>),
+}
+
+impl<O: OffsetSizeTrait> GeometryArrayBuilder<O> {
+    pub fn new(capacity: usize, array_type: GeometryArray<O>) -> Self {
+        match array_type {
+            GeometryArray::Point(_) => {
+                GeometryArrayBuilder::<O>::Point(PointArrayBuilder::new(capacity))
+            }
+            GeometryArray::LineString(_) => todo!(),
+            GeometryArray::Polygon(_) => todo!(),
+            GeometryArray::MultiPoint(_) => todo!(),
+            GeometryArray::MultiLineString(_) => todo!(),
+            GeometryArray::MultiPolygon(_) => todo!(),
+            GeometryArray::Mixed(_) => todo!(),
+        }
+    }
+
+    pub fn push_geo_geometry(&mut self, geometry: Option<geo::Geometry>) -> DFResult<()> {
+        let Some(geometry) = geometry else {
+            self.push_null();
+            return Ok(());
+        };
+        match self {
+            GeometryArrayBuilder::Point(builder) => match geometry {
+                geo::Geometry::Point(p) => builder.push_geo_point(Some(p)),
+                _ => {
+                    return Err(DataFusionError::Internal(
+                        "geometry is not point".to_string(),
+                    ))
+                }
+            },
+            GeometryArrayBuilder::LineString(builder) => {
+                todo!()
+            }
+        }
+        Ok(())
+    }
+
+    pub fn push_null(&mut self) {
+        match self {
+            GeometryArrayBuilder::Point(builder) => builder.push_null(),
+            GeometryArrayBuilder::LineString(builder) => builder.push_null(),
         }
     }
 }

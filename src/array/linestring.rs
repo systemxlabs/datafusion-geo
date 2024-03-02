@@ -1,10 +1,11 @@
 use crate::array::util::check_nulls;
 use crate::array::{GeometryArrayAccessor, GeometryArrayTrait};
-use crate::buffer::CoordBuffer;
+use crate::buffer::{CoordBuffer, CoordBufferBuilder};
 use crate::scalar::{GeometryScalarTrait, LineString};
 use crate::DFResult;
 use arrow::array::OffsetSizeTrait;
 use arrow::buffer::{NullBuffer, OffsetBuffer};
+use arrow_buffer::NullBufferBuilder;
 use datafusion::common::DataFusionError;
 use std::borrow::Cow;
 
@@ -58,5 +59,30 @@ impl<'a, O: OffsetSizeTrait> GeometryArrayAccessor<'a> for LineStringArray<O> {
             index,
         )?;
         Ok(Some(line_string))
+    }
+}
+
+#[derive(Debug)]
+pub struct LineStringArrayBuilder<O: OffsetSizeTrait> {
+    pub(crate) coords: CoordBufferBuilder,
+    pub(crate) geom_offsets: Vec<O>,
+    pub(crate) nulls: NullBufferBuilder,
+}
+
+impl<O: OffsetSizeTrait> LineStringArrayBuilder<O> {
+    pub fn new(capacity: usize) -> Self {
+        todo!()
+    }
+
+    pub fn push_geo_line_string(&mut self, value: Option<geo::LineString>) {
+        todo!()
+    }
+
+    pub fn push_null(&mut self) {
+        self.nulls.append_null();
+    }
+
+    pub fn build(self) -> LineStringArray<O> {
+        todo!()
     }
 }

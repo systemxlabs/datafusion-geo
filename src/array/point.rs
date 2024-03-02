@@ -1,11 +1,12 @@
 use crate::array::util::check_nulls;
 use crate::array::{GeometryArrayAccessor, GeometryArrayTrait};
-use crate::buffer::CoordBuffer;
+use crate::buffer::{CoordBuffer, CoordBufferBuilder};
 use crate::scalar::Point;
 use crate::DFResult;
-use arrow::array::{Array, FixedSizeListArray};
+use arrow::array::{Array, FixedSizeListArray, NullBuilder};
 use arrow::buffer::NullBuffer;
 use arrow::datatypes::DataType;
+use arrow_buffer::NullBufferBuilder;
 use datafusion::error::DataFusionError;
 use std::borrow::Cow;
 
@@ -66,5 +67,40 @@ impl TryFrom<&dyn Array> for PointArray {
                 "Invalid data type for PointArray".to_string(),
             )),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct PointArrayBuilder {
+    pub coords: CoordBufferBuilder,
+    pub nulls: NullBufferBuilder,
+}
+
+impl PointArrayBuilder {
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            coords: CoordBufferBuilder::new(capacity),
+            nulls: NullBufferBuilder::new(capacity),
+        }
+    }
+
+    pub fn push_geo_point(&mut self, value: Option<geo::Point>) {
+        if let Some(value) = value {
+            self.coords.push_xy(value.x(), value.y());
+            self.nulls.append(true);
+        } else {
+            self.push_null()
+        }
+    }
+
+    pub fn push_null(&mut self) {
+        self.coords.push_xy(0., 0.);
+        self.nulls.append(false);
+    }
+
+    pub fn build(self) -> DFResult<PointArray> {
+        let coords = self.coords.build()?;
+        let nulls = self.nulls.finish_cloned();
+        PointArray::try_new(coords, nulls)
     }
 }
