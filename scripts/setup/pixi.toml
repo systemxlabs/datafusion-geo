@@ -1,0 +1,13 @@
+[project]
+name = "rust-build"
+version = "0.1.0"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+[tasks]
+
+[dependencies]
+# libgdal = ">=3.8"
+geos = ">=3.12.1"
+# protobuf = "4.23.4.*"
+# proj = ">=9.3.1"

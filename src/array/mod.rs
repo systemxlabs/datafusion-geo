@@ -88,7 +88,7 @@ pub enum GeometryType {
 }
 
 impl GeometryType {
-    pub fn type_id(&self) -> i8 {
+    pub fn geo_type_id(&self) -> i8 {
         match self {
             GeometryType::Point => 1,
             GeometryType::LineString => 2,
@@ -101,7 +101,7 @@ impl GeometryType {
     }
 
     pub fn find(type_id: i8) -> Option<GeometryType> {
-        GeometryType::iter().find(|t| t.type_id() == type_id)
+        GeometryType::iter().find(|t| t.geo_type_id() == type_id)
     }
 }
 
