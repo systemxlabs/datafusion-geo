@@ -3,12 +3,13 @@ use crate::array::{GeometryArrayAccessor, GeometryArrayTrait};
 use crate::buffer::{CoordBuffer, CoordBufferBuilder};
 use crate::scalar::Point;
 use crate::DFResult;
-use arrow::array::{Array, FixedSizeListArray, NullBuilder};
+use arrow::array::{Array, ArrayRef, FixedSizeListArray};
 use arrow::buffer::NullBuffer;
 use arrow::datatypes::DataType;
 use arrow_buffer::NullBufferBuilder;
 use datafusion::error::DataFusionError;
 use std::borrow::Cow;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct PointArray {
@@ -30,6 +31,18 @@ impl GeometryArrayTrait for PointArray {
 
     fn len(&self) -> usize {
         self.coords.len()
+    }
+
+    fn extension_name() -> &'static str {
+        "geoarrow.point"
+    }
+
+    fn data_type() -> DataType {
+        DataType::FixedSizeList(Arc::new(CoordBuffer::values_field()), 2)
+    }
+
+    fn into_arrow_array(self) -> ArrayRef {
+        todo!()
     }
 }
 

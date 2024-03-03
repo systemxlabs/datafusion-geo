@@ -1,4 +1,3 @@
-pub mod algorithm;
 pub mod array;
 pub(crate) mod buffer;
 pub mod function;

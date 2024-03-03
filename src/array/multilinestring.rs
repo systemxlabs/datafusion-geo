@@ -1,10 +1,11 @@
 use crate::array::util::check_nulls;
-use crate::array::{GeometryArrayAccessor, GeometryArrayTrait};
+use crate::array::{GeometryArrayAccessor, GeometryArrayTrait, PointArray};
 use crate::buffer::CoordBuffer;
-use crate::scalar::{GeometryScalarTrait, MultiLineString, MultiPoint};
+use crate::scalar::MultiLineString;
 use crate::DFResult;
-use arrow::array::OffsetSizeTrait;
+use arrow::array::{ArrayRef, OffsetSizeTrait};
 use arrow::buffer::{NullBuffer, OffsetBuffer};
+use arrow::datatypes::{DataType, Field};
 use datafusion::error::DataFusionError;
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -54,6 +55,26 @@ impl<O: OffsetSizeTrait> GeometryArrayTrait for MultiLineStringArray<O> {
 
     fn len(&self) -> usize {
         self.geom_offsets.len() - 1
+    }
+
+    fn extension_name() -> &'static str {
+        "geoarrow.multilinestring"
+    }
+
+    fn data_type() -> DataType {
+        let vertices_field = Field::new("vertices", PointArray::data_type(), false);
+        let linestrings_field = match O::IS_LARGE {
+            true => Field::new_large_list("linestrings", vertices_field, true),
+            false => Field::new_list("linestrings", vertices_field, true),
+        };
+        match O::IS_LARGE {
+            true => DataType::LargeList(Arc::new(linestrings_field)),
+            false => DataType::List(Arc::new(linestrings_field)),
+        }
+    }
+
+    fn into_arrow_array(self) -> ArrayRef {
+        todo!()
     }
 }
 

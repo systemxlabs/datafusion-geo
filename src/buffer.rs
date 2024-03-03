@@ -24,7 +24,7 @@ impl CoordBuffer {
         Float64Array::new(self.coords.clone(), None)
     }
 
-    pub fn values_field(&self) -> Field {
+    pub fn values_field() -> Field {
         Field::new("coord", DataType::Float64, false)
     }
 
@@ -55,7 +55,7 @@ impl CoordBuffer {
 impl From<CoordBuffer> for FixedSizeListArray {
     fn from(value: CoordBuffer) -> Self {
         FixedSizeListArray::new(
-            Arc::new(value.values_field()),
+            Arc::new(CoordBuffer::values_field()),
             2,
             Arc::new(value.values_array()),
             None,

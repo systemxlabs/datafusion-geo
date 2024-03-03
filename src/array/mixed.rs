@@ -9,9 +9,12 @@ use crate::array::{
 };
 use crate::scalar::GeometryScalar;
 use crate::DFResult;
-use arrow::array::OffsetSizeTrait;
+use arrow::array::{ArrayRef, OffsetSizeTrait};
 use arrow::buffer::{NullBuffer, ScalarBuffer};
+use arrow::datatypes::{DataType, Field, UnionFields, UnionMode};
 use datafusion::error::DataFusionError;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct MixedGeometryArray<O: OffsetSizeTrait> {
@@ -66,6 +69,64 @@ impl<O: OffsetSizeTrait> GeometryArrayTrait for MixedGeometryArray<O> {
 
     fn len(&self) -> usize {
         self.type_ids.len()
+    }
+
+    fn extension_name() -> &'static str {
+        "geoarrow.geometry"
+    }
+
+    fn data_type() -> DataType {
+        let fields: Vec<Field> = vec![
+            Field::new("geometry", PointArray::data_type(), true).with_metadata(HashMap::from([(
+                "ARROW:extension:name".to_string(),
+                PointArray::extension_name().to_string(),
+            )])),
+            Field::new("geometry", LineStringArray::<O>::data_type(), true).with_metadata(
+                HashMap::from([(
+                    "ARROW:extension:name".to_string(),
+                    LineStringArray::<O>::extension_name().to_string(),
+                )]),
+            ),
+            Field::new("geometry", PolygonArray::<O>::data_type(), true).with_metadata(
+                HashMap::from([(
+                    "ARROW:extension:name".to_string(),
+                    PolygonArray::<O>::extension_name().to_string(),
+                )]),
+            ),
+            Field::new("geometry", MultiPointArray::<O>::data_type(), true).with_metadata(
+                HashMap::from([(
+                    "ARROW:extension:name".to_string(),
+                    MultiPointArray::<O>::extension_name().to_string(),
+                )]),
+            ),
+            Field::new("geometry", MultiLineStringArray::<O>::data_type(), true).with_metadata(
+                HashMap::from([(
+                    "ARROW:extension:name".to_string(),
+                    MultiLineStringArray::<O>::extension_name().to_string(),
+                )]),
+            ),
+            Field::new("geometry", MultiPolygonArray::<O>::data_type(), true).with_metadata(
+                HashMap::from([(
+                    "ARROW:extension:name".to_string(),
+                    MultiPolygonArray::<O>::extension_name().to_string(),
+                )]),
+            ),
+        ];
+        let type_ids = vec![
+            GeometryType::Point.geo_type_id(),
+            GeometryType::LineString.geo_type_id(),
+            GeometryType::Polygon.geo_type_id(),
+            GeometryType::MultiPoint.geo_type_id(),
+            GeometryType::MultiLineString.geo_type_id(),
+            GeometryType::MultiPolygon.geo_type_id(),
+        ];
+
+        let union_fields = UnionFields::new(type_ids, fields);
+        DataType::Union(union_fields, UnionMode::Dense)
+    }
+
+    fn into_arrow_array(self) -> ArrayRef {
+        todo!()
     }
 }
 

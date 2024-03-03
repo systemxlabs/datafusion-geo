@@ -18,8 +18,9 @@ pub use polygon::*;
 
 use crate::scalar::{GeometryScalar, GeometryScalarTrait};
 use crate::DFResult;
-use arrow::array::OffsetSizeTrait;
+use arrow::array::{ArrayRef, OffsetSizeTrait};
 use arrow::buffer::NullBuffer;
+use arrow::datatypes::DataType;
 use datafusion::common::DataFusionError;
 use strum::{EnumIter, IntoEnumIterator};
 
@@ -32,6 +33,12 @@ pub trait GeometryArrayTrait: Send + Sync {
     fn is_null(&self, i: usize) -> bool {
         self.nulls().map(|x| x.is_null(i)).unwrap_or(false)
     }
+
+    fn extension_name() -> &'static str;
+
+    fn data_type() -> DataType;
+
+    fn into_arrow_array(self) -> ArrayRef;
 }
 
 pub trait GeometryArrayAccessor<'a>: GeometryArrayTrait {
@@ -141,6 +148,26 @@ impl<O: OffsetSizeTrait> GeometryArrayTrait for GeometryArray<O> {
             GeometryArray::MultiLineString(arr) => arr.len(),
             GeometryArray::MultiPolygon(arr) => arr.len(),
             GeometryArray::Mixed(arr) => arr.len(),
+        }
+    }
+
+    fn extension_name() -> &'static str {
+        panic!("Please use concrete type array to get extension name")
+    }
+
+    fn data_type() -> DataType {
+        panic!("Please use concrete type array to get data type")
+    }
+
+    fn into_arrow_array(self) -> ArrayRef {
+        match self {
+            GeometryArray::Point(arr) => arr.into_arrow_array(),
+            GeometryArray::LineString(arr) => arr.into_arrow_array(),
+            GeometryArray::Polygon(arr) => arr.into_arrow_array(),
+            GeometryArray::MultiPoint(arr) => arr.into_arrow_array(),
+            GeometryArray::MultiLineString(arr) => arr.into_arrow_array(),
+            GeometryArray::MultiPolygon(arr) => arr.into_arrow_array(),
+            GeometryArray::Mixed(arr) => arr.into_arrow_array(),
         }
     }
 }

@@ -1,13 +1,15 @@
 use crate::array::util::check_nulls;
-use crate::array::{GeometryArrayAccessor, GeometryArrayTrait};
+use crate::array::{GeometryArrayAccessor, GeometryArrayTrait, PointArray};
 use crate::buffer::{CoordBuffer, CoordBufferBuilder};
-use crate::scalar::{GeometryScalarTrait, LineString};
+use crate::scalar::LineString;
 use crate::DFResult;
-use arrow::array::OffsetSizeTrait;
+use arrow::array::{ArrayRef, OffsetSizeTrait};
 use arrow::buffer::{NullBuffer, OffsetBuffer};
+use arrow::datatypes::{DataType, Field};
 use arrow_buffer::NullBufferBuilder;
 use datafusion::common::DataFusionError;
 use std::borrow::Cow;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct LineStringArray<O: OffsetSizeTrait> {
@@ -45,6 +47,22 @@ impl<O: OffsetSizeTrait> GeometryArrayTrait for LineStringArray<O> {
 
     fn len(&self) -> usize {
         self.geom_offsets.len() - 1
+    }
+
+    fn extension_name() -> &'static str {
+        "geoarrow.linestring"
+    }
+
+    fn data_type() -> DataType {
+        let vertices_field = Field::new("vertices", PointArray::data_type(), false);
+        match O::IS_LARGE {
+            true => DataType::LargeList(Arc::new(vertices_field)),
+            false => DataType::List(Arc::new(vertices_field)),
+        }
+    }
+
+    fn into_arrow_array(self) -> ArrayRef {
+        todo!()
     }
 }
 

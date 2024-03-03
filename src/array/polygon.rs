@@ -1,12 +1,14 @@
 use crate::array::util::check_nulls;
-use crate::array::{GeometryArrayAccessor, GeometryArrayTrait};
+use crate::array::{GeometryArrayAccessor, GeometryArrayTrait, PointArray};
 use crate::buffer::CoordBuffer;
-use crate::scalar::{GeometryScalarTrait, Polygon};
+use crate::scalar::Polygon;
 use crate::DFResult;
-use arrow::array::OffsetSizeTrait;
+use arrow::array::{ArrayRef, OffsetSizeTrait};
 use arrow::buffer::{NullBuffer, OffsetBuffer};
+use arrow::datatypes::{DataType, Field};
 use datafusion::error::DataFusionError;
 use std::borrow::Cow;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct PolygonArray<O: OffsetSizeTrait> {
@@ -53,6 +55,26 @@ impl<O: OffsetSizeTrait> GeometryArrayTrait for PolygonArray<O> {
 
     fn len(&self) -> usize {
         self.geom_offsets.len() - 1
+    }
+
+    fn extension_name() -> &'static str {
+        "geoarrow.polygon"
+    }
+
+    fn data_type() -> DataType {
+        let vertices_field = Field::new("vertices", PointArray::data_type(), false);
+        let rings_field = match O::IS_LARGE {
+            true => Field::new_large_list("rings", vertices_field, true),
+            false => Field::new_list("rings", vertices_field, true),
+        };
+        match O::IS_LARGE {
+            true => DataType::LargeList(Arc::new(rings_field)),
+            false => DataType::List(Arc::new(rings_field)),
+        }
+    }
+
+    fn into_arrow_array(self) -> ArrayRef {
+        todo!()
     }
 }
 
