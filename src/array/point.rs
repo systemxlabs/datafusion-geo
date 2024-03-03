@@ -25,6 +25,10 @@ impl PointArray {
 }
 
 impl GeometryArrayTrait for PointArray {
+    fn geo_type_id() -> i8 {
+        1
+    }
+
     fn nulls(&self) -> Option<&NullBuffer> {
         self.nulls.as_ref()
     }

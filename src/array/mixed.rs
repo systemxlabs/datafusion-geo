@@ -4,8 +4,7 @@ use crate::array::point::PointArray;
 use crate::array::polygon::PolygonArray;
 use crate::array::util::check_nulls;
 use crate::array::{
-    GeometryArrayAccessor, GeometryArrayTrait, GeometryType, MultiLineStringArray,
-    MultiPolygonArray,
+    GeometryArrayAccessor, GeometryArrayTrait, MultiLineStringArray, MultiPolygonArray,
 };
 use crate::scalar::GeometryScalar;
 use crate::DFResult;
@@ -14,7 +13,6 @@ use arrow::buffer::{NullBuffer, ScalarBuffer};
 use arrow::datatypes::{DataType, Field, UnionFields, UnionMode};
 use datafusion::error::DataFusionError;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct MixedGeometryArray<O: OffsetSizeTrait> {
@@ -63,6 +61,10 @@ impl<O: OffsetSizeTrait> MixedGeometryArray<O> {
 }
 
 impl<O: OffsetSizeTrait> GeometryArrayTrait for MixedGeometryArray<O> {
+    fn geo_type_id() -> i8 {
+        8
+    }
+
     fn nulls(&self) -> Option<&NullBuffer> {
         self.nulls.as_ref()
     }
@@ -113,12 +115,12 @@ impl<O: OffsetSizeTrait> GeometryArrayTrait for MixedGeometryArray<O> {
             ),
         ];
         let type_ids = vec![
-            GeometryType::Point.geo_type_id(),
-            GeometryType::LineString.geo_type_id(),
-            GeometryType::Polygon.geo_type_id(),
-            GeometryType::MultiPoint.geo_type_id(),
-            GeometryType::MultiLineString.geo_type_id(),
-            GeometryType::MultiPolygon.geo_type_id(),
+            PointArray::geo_type_id(),
+            LineStringArray::<O>::geo_type_id(),
+            PolygonArray::<O>::geo_type_id(),
+            MultiPointArray::<O>::geo_type_id(),
+            MultiLineStringArray::<O>::geo_type_id(),
+            MultiPolygonArray::<O>::geo_type_id(),
         ];
 
         let union_fields = UnionFields::new(type_ids, fields);
@@ -132,75 +134,67 @@ impl<O: OffsetSizeTrait> GeometryArrayTrait for MixedGeometryArray<O> {
 
 impl<'a, O: OffsetSizeTrait> GeometryArrayAccessor<'a> for MixedGeometryArray<O> {
     fn value(&'a self, index: usize) -> DFResult<Option<GeometryScalar<'a, O>>> {
-        let Some(type_id) = self.type_ids.get(index) else {
+        let Some(geo_type_id) = self.type_ids.get(index) else {
             return Ok(None);
-        };
-        let Some(geometry_type) = GeometryType::find(*type_id) else {
-            return Err(DataFusionError::Internal(
-                "Invalid geometry type id".to_string(),
-            ));
         };
         let offset = self.offsets[index] as usize;
 
-        match geometry_type {
-            GeometryType::Point => {
-                if let Some(point_arr) = &self.points {
-                    let point = point_arr.value(offset)?;
-                    Ok(point.map(|v| GeometryScalar::Point(v)))
-                } else {
-                    Err(DataFusionError::Internal("point array is none".to_string()))
-                }
+        if *geo_type_id == PointArray::geo_type_id() {
+            if let Some(point_arr) = &self.points {
+                let point = point_arr.value(offset)?;
+                Ok(point.map(|v| GeometryScalar::Point(v)))
+            } else {
+                Err(DataFusionError::Internal("point array is none".to_string()))
             }
-            GeometryType::LineString => {
-                if let Some(linestring_arr) = &self.line_strings {
-                    let line_string = linestring_arr.value(offset)?;
-                    Ok(line_string.map(|v| GeometryScalar::LineString(v)))
-                } else {
-                    Err(DataFusionError::Internal(
-                        "linestring array is none".to_string(),
-                    ))
-                }
+        } else if *geo_type_id == LineStringArray::<O>::geo_type_id() {
+            if let Some(linestring_arr) = &self.line_strings {
+                let line_string = linestring_arr.value(offset)?;
+                Ok(line_string.map(|v| GeometryScalar::LineString(v)))
+            } else {
+                Err(DataFusionError::Internal(
+                    "linestring array is none".to_string(),
+                ))
             }
-            GeometryType::Polygon => {
-                if let Some(polygon_arr) = &self.polygons {
-                    let polygon = polygon_arr.value(offset)?;
-                    Ok(polygon.map(|v| GeometryScalar::Polygon(v)))
-                } else {
-                    Err(DataFusionError::Internal(
-                        "polygon array is none".to_string(),
-                    ))
-                }
+        } else if *geo_type_id == PolygonArray::<O>::geo_type_id() {
+            if let Some(polygon_arr) = &self.polygons {
+                let polygon = polygon_arr.value(offset)?;
+                Ok(polygon.map(|v| GeometryScalar::Polygon(v)))
+            } else {
+                Err(DataFusionError::Internal(
+                    "polygon array is none".to_string(),
+                ))
             }
-            GeometryType::MultiPoint => {
-                if let Some(multipoint_arr) = &self.multi_points {
-                    let multi_point = multipoint_arr.value(offset)?;
-                    Ok(multi_point.map(|v| GeometryScalar::MultiPoint(v)))
-                } else {
-                    Err(DataFusionError::Internal(
-                        "multipoint array is none".to_string(),
-                    ))
-                }
+        } else if *geo_type_id == MultiPointArray::<O>::geo_type_id() {
+            if let Some(multipoint_arr) = &self.multi_points {
+                let multi_point = multipoint_arr.value(offset)?;
+                Ok(multi_point.map(|v| GeometryScalar::MultiPoint(v)))
+            } else {
+                Err(DataFusionError::Internal(
+                    "multipoint array is none".to_string(),
+                ))
             }
-            GeometryType::MultiLineString => {
-                if let Some(multilinestring_arr) = &self.multi_line_strings {
-                    let multi_linestring = multilinestring_arr.value(offset)?;
-                    Ok(multi_linestring.map(|v| GeometryScalar::MultiLineString(v)))
-                } else {
-                    Err(DataFusionError::Internal(
-                        "multilinestring array is none".to_string(),
-                    ))
-                }
+        } else if *geo_type_id == MultiLineStringArray::<O>::geo_type_id() {
+            if let Some(multilinestring_arr) = &self.multi_line_strings {
+                let multi_linestring = multilinestring_arr.value(offset)?;
+                Ok(multi_linestring.map(|v| GeometryScalar::MultiLineString(v)))
+            } else {
+                Err(DataFusionError::Internal(
+                    "multilinestring array is none".to_string(),
+                ))
             }
-            GeometryType::MultiPolygon => {
-                if let Some(multipolygon_arr) = &self.multi_polygons {
-                    let multi_polygon = multipolygon_arr.value(offset)?;
-                    Ok(multi_polygon.map(|v| GeometryScalar::MultiPolygon(v)))
-                } else {
-                    Err(DataFusionError::Internal(
-                        "multipolygon array is none".to_string(),
-                    ))
-                }
+        } else if *geo_type_id == MultiPolygonArray::<O>::geo_type_id() {
+            if let Some(multipolygon_arr) = &self.multi_polygons {
+                let multi_polygon = multipolygon_arr.value(offset)?;
+                Ok(multi_polygon.map(|v| GeometryScalar::MultiPolygon(v)))
+            } else {
+                Err(DataFusionError::Internal(
+                    "multipolygon array is none".to_string(),
+                ))
             }
+        } else {
+            Err(DataFusionError::Internal(
+                "Invalid geometry type id".to_string(),
+            ))
         }
     }
 }

@@ -25,6 +25,8 @@ use datafusion::common::DataFusionError;
 use strum::{EnumIter, IntoEnumIterator};
 
 pub trait GeometryArrayTrait: Send + Sync {
+    fn geo_type_id() -> i8;
+
     fn nulls(&self) -> Option<&NullBuffer>;
 
     fn len(&self) -> usize;
@@ -86,35 +88,6 @@ pub trait GeometryArrayAccessor<'a>: GeometryArrayTrait {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, EnumIter)]
-pub enum GeometryType {
-    Point,
-    LineString,
-    Polygon,
-    MultiPoint,
-    MultiLineString,
-    MultiPolygon,
-    // GeometryCollection,
-}
-
-impl GeometryType {
-    pub fn geo_type_id(&self) -> i8 {
-        match self {
-            GeometryType::Point => 1,
-            GeometryType::LineString => 2,
-            GeometryType::Polygon => 3,
-            GeometryType::MultiPoint => 4,
-            GeometryType::MultiLineString => 5,
-            GeometryType::MultiPolygon => 6,
-            // GeometryType::GeometryCollection => 7,
-        }
-    }
-
-    pub fn find(type_id: i8) -> Option<GeometryType> {
-        GeometryType::iter().find(|t| t.geo_type_id() == type_id)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum GeometryArray<O: OffsetSizeTrait> {
     Point(PointArray),
@@ -127,6 +100,10 @@ pub enum GeometryArray<O: OffsetSizeTrait> {
 }
 
 impl<O: OffsetSizeTrait> GeometryArrayTrait for GeometryArray<O> {
+    fn geo_type_id() -> i8 {
+        panic!("Please use concrete type array to get geometry type id")
+    }
+
     fn nulls(&self) -> Option<&NullBuffer> {
         match self {
             GeometryArray::Point(arr) => arr.nulls(),

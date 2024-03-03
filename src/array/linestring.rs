@@ -41,6 +41,10 @@ impl<O: OffsetSizeTrait> LineStringArray<O> {
 }
 
 impl<O: OffsetSizeTrait> GeometryArrayTrait for LineStringArray<O> {
+    fn geo_type_id() -> i8 {
+        2
+    }
+
     fn nulls(&self) -> Option<&NullBuffer> {
         self.nulls.as_ref()
     }

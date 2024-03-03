@@ -40,6 +40,10 @@ impl<O: OffsetSizeTrait> MultiPointArray<O> {
 }
 
 impl<O: OffsetSizeTrait> GeometryArrayTrait for MultiPointArray<O> {
+    fn geo_type_id() -> i8 {
+        4
+    }
+
     fn nulls(&self) -> Option<&NullBuffer> {
         self.nulls.as_ref()
     }

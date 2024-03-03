@@ -58,6 +58,10 @@ impl<O: OffsetSizeTrait> MultiPolygonArray<O> {
 }
 
 impl<O: OffsetSizeTrait> GeometryArrayTrait for MultiPolygonArray<O> {
+    fn geo_type_id() -> i8 {
+        6
+    }
+
     fn nulls(&self) -> Option<&NullBuffer> {
         self.nulls.as_ref()
     }

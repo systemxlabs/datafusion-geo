@@ -49,6 +49,10 @@ impl<O: OffsetSizeTrait> PolygonArray<O> {
 }
 
 impl<O: OffsetSizeTrait> GeometryArrayTrait for PolygonArray<O> {
+    fn geo_type_id() -> i8 {
+        3
+    }
+
     fn nulls(&self) -> Option<&NullBuffer> {
         self.nulls.as_ref()
     }

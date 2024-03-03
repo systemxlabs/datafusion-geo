@@ -49,6 +49,9 @@ impl<O: OffsetSizeTrait> MultiLineStringArray<O> {
 }
 
 impl<O: OffsetSizeTrait> GeometryArrayTrait for MultiLineStringArray<O> {
+    fn geo_type_id() -> i8 {
+        5
+    }
     fn nulls(&self) -> Option<&NullBuffer> {
         self.nulls.as_ref()
     }
