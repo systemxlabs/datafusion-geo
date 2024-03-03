@@ -20,10 +20,6 @@ impl CoordBuffer {
         Ok(Self { coords })
     }
 
-    pub fn values_array(&self) -> Float64Array {
-        Float64Array::new(self.coords.clone(), None)
-    }
-
     pub fn values_field() -> Field {
         Field::new("coord", DataType::Float64, false)
     }
@@ -57,7 +53,7 @@ impl From<CoordBuffer> for FixedSizeListArray {
         FixedSizeListArray::new(
             Arc::new(CoordBuffer::values_field()),
             2,
-            Arc::new(value.values_array()),
+            Arc::new(Float64Array::new(value.coords, None)),
             None,
         )
     }
@@ -127,7 +123,12 @@ impl CoordBufferBuilder {
         self.coords.push(y);
     }
 
-    pub fn build(self) -> DFResult<CoordBuffer> {
-        CoordBuffer::try_new(self.coords.into())
+    pub fn push_geo_coord(&mut self, coord: &geo::Coord) {
+        self.coords.push(coord.x);
+        self.coords.push(coord.y);
+    }
+
+    pub fn build(self) -> CoordBuffer {
+        CoordBuffer::try_new(self.coords.into()).expect("builder has checked")
     }
 }

@@ -87,6 +87,16 @@ impl TryFrom<&dyn Array> for PointArray {
     }
 }
 
+impl From<&[geo::Point]> for PointArray {
+    fn from(value: &[geo::Point]) -> Self {
+        let mut builder = PointArrayBuilder::new(0);
+        for p in value.iter() {
+            builder.push_geo_point(Some(p.clone()));
+        }
+        builder.build()
+    }
+}
+
 #[derive(Debug)]
 pub struct PointArrayBuilder {
     pub coords: CoordBufferBuilder,
@@ -115,9 +125,30 @@ impl PointArrayBuilder {
         self.nulls.append(false);
     }
 
-    pub fn build(self) -> DFResult<PointArray> {
-        let coords = self.coords.build()?;
+    pub fn build(self) -> PointArray {
+        let coords = self.coords.build();
         let nulls = self.nulls.finish_cloned();
-        PointArray::try_new(coords, nulls)
+        PointArray::try_new(coords, nulls).expect("builder has checked")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::array::{GeometryArrayAccessor, GeometryArrayTrait, PointArray};
+    use geo::point;
+
+    #[test]
+    fn test_point_array() {
+        let p0 = point!(x: 0f64, y: 1f64);
+        let p1 = point!(x: 1f64, y: 2f64);
+        let p2 = point!(x: 2f64, y: 3f64);
+        let arr: PointArray = vec![p0, p1, p2].as_slice().into();
+        assert_eq!(arr.len(), 3);
+
+        let mut iterator = arr.iter_geo();
+        assert_eq!(iterator.next(), Some(Some(geo::Geometry::Point(p0))));
+        assert_eq!(iterator.next(), Some(Some(geo::Geometry::Point(p1))));
+        assert_eq!(iterator.next(), Some(Some(geo::Geometry::Point(p2))));
+        assert_eq!(iterator.next(), None);
     }
 }

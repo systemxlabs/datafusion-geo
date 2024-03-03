@@ -33,7 +33,7 @@ pub(crate) fn build_geometry_array_from_geo<O: OffsetSizeTrait>(
                     }
                 }
             }
-            Ok(GeometryArray::Point(builder.build()?))
+            Ok(GeometryArray::Point(builder.build()))
         }
         GeometryArray::LineString(_) => todo!(),
         GeometryArray::Polygon(_) => todo!(),
