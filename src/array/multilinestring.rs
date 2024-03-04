@@ -1,11 +1,12 @@
 use crate::array::util::check_nulls;
 use crate::array::{GeometryArrayAccessor, GeometryArrayTrait, PointArray};
-use crate::buffer::CoordBuffer;
+use crate::buffer::{CoordBuffer, CoordBufferBuilder};
 use crate::scalar::MultiLineString;
 use crate::DFResult;
 use arrow::array::{ArrayRef, OffsetSizeTrait};
 use arrow::buffer::{NullBuffer, OffsetBuffer};
 use arrow::datatypes::{DataType, Field};
+use arrow_buffer::NullBufferBuilder;
 use datafusion::error::DataFusionError;
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -93,5 +94,36 @@ impl<'a, O: OffsetSizeTrait> GeometryArrayAccessor<'a> for MultiLineStringArray<
             index,
         )?;
         Ok(Some(multi_linestring))
+    }
+}
+
+pub struct MultiLineStringArrayBuilder<O: OffsetSizeTrait> {
+    coords: CoordBufferBuilder,
+    geom_offsets: Vec<O>,
+    ring_offsets: Vec<O>,
+    nulls: NullBufferBuilder,
+}
+
+impl<O: OffsetSizeTrait> MultiLineStringArrayBuilder<O> {
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            coords: CoordBufferBuilder::new(capacity),
+            geom_offsets: Vec::with_capacity(capacity),
+            ring_offsets: Vec::with_capacity(capacity),
+            nulls: NullBufferBuilder::new(capacity),
+        }
+    }
+
+    pub fn push_geo_multi_line_string(&mut self, value: Option<geo::MultiLineString>) {
+        if let Some(multi_line_string) = value {
+            todo!()
+        } else {
+            self.push_null();
+        }
+    }
+
+    pub fn push_null(&mut self) {
+        self.geom_offsets.push(O::usize_as(self.ring_offsets.len()));
+        self.nulls.append_null();
     }
 }

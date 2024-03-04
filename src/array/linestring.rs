@@ -97,9 +97,9 @@ impl<O: OffsetSizeTrait> From<&[Option<geo::LineString>]> for LineStringArray<O>
 /// Builder
 #[derive(Debug)]
 pub struct LineStringArrayBuilder<O: OffsetSizeTrait> {
-    pub(crate) coords: CoordBufferBuilder,
-    pub(crate) geom_offsets: Vec<O>,
-    pub(crate) nulls: NullBufferBuilder,
+    coords: CoordBufferBuilder,
+    geom_offsets: Vec<O>,
+    nulls: NullBufferBuilder,
 }
 
 impl<O: OffsetSizeTrait> LineStringArrayBuilder<O> {
@@ -114,16 +114,11 @@ impl<O: OffsetSizeTrait> LineStringArrayBuilder<O> {
     pub fn push_geo_line_string(&mut self, value: Option<geo::LineString>) {
         use geo::CoordsIter;
         if let Some(line_string) = value {
+            let offset = O::usize_as(self.coords.len());
             for coord in line_string.coords() {
                 self.coords.push_geo_coord(coord);
             }
-            if let Some(last_offset) = self.geom_offsets.last() {
-                let length = O::usize_as(line_string.coords_count());
-                let offset = *last_offset + length;
-                self.geom_offsets.push(offset);
-            } else {
-                self.geom_offsets.push(O::zero());
-            }
+            self.geom_offsets.push(offset);
             self.nulls.append(true);
         } else {
             self.push_null()
@@ -131,8 +126,7 @@ impl<O: OffsetSizeTrait> LineStringArrayBuilder<O> {
     }
 
     pub fn push_null(&mut self) {
-        let last_offset = self.geom_offsets.last().copied().unwrap_or(O::zero());
-        self.geom_offsets.push(last_offset);
+        self.geom_offsets.push(O::usize_as(self.coords.len()));
         self.nulls.append_null();
     }
 
@@ -166,7 +160,7 @@ mod tests {
         let arr: LineStringArray<i64> = vec![Some(ls0.clone()), None, Some(ls2.clone())]
             .as_slice()
             .into();
-        assert_eq!(arr.len(), 2);
+        assert_eq!(arr.len(), 3);
 
         let mut iterator = arr.iter_geo();
         assert_eq!(iterator.next(), Some(Some(geo::Geometry::LineString(ls0))));

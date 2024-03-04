@@ -37,7 +37,7 @@ impl CoordBuffer {
     }
 
     pub(crate) fn slice(&self, offset: usize, length: usize) -> DFResult<Self> {
-        if offset + length <= self.len() {
+        if offset + length > self.len() {
             return Err(DataFusionError::Internal(
                 "offset + length may not exceed length of array".to_string(),
             ));
@@ -106,6 +106,16 @@ impl TryFrom<CoordBuffer> for geos::CoordSeq<'_> {
     }
 }
 
+impl From<&[geo::Coord]> for CoordBuffer {
+    fn from(value: &[geo::Coord]) -> Self {
+        let mut builder = CoordBufferBuilder::new(value.len());
+        for coord in value {
+            builder.push_geo_coord(coord);
+        }
+        builder.build()
+    }
+}
+
 #[derive(Debug)]
 pub struct CoordBufferBuilder {
     pub coords: Vec<f64>,
@@ -116,6 +126,10 @@ impl CoordBufferBuilder {
         Self {
             coords: Vec::with_capacity(capacity * 2),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.coords.len() / 2
     }
 
     pub fn push_xy(&mut self, x: f64, y: f64) {
@@ -130,5 +144,29 @@ impl CoordBufferBuilder {
 
     pub fn build(self) -> CoordBuffer {
         CoordBuffer::try_new(self.coords.into()).expect("builder has checked")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::buffer::CoordBuffer;
+    use geo::coord;
+
+    #[test]
+    pub fn test_coord_buffer() {
+        let c0 = coord! {x: 0.0, y: 1.0 };
+        let c1 = coord! {x: 1.0, y: 2.0 };
+        let c2 = coord! {x: 2.0, y: 3.0 };
+        let buffer: CoordBuffer = vec![c0, c1, c2].as_slice().into();
+
+        assert_eq!(buffer.x(1), Some(c1.x));
+        assert_eq!(buffer.y(2), Some(c2.y));
+
+        let sliced_buffer = buffer.slice(0, 2).unwrap();
+
+        assert_eq!(sliced_buffer.x(0), Some(c0.x));
+        assert_eq!(sliced_buffer.y(0), Some(c0.y));
+        assert_eq!(sliced_buffer.x(1), Some(c1.x));
+        assert_eq!(sliced_buffer.y(1), Some(c1.y));
     }
 }

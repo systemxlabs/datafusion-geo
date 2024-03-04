@@ -779,9 +779,11 @@ version = "0.1.0"
 dependencies = [
  "arrow",
  "arrow-buffer",
+ "bytes",
  "datafusion",
  "geo",
  "geos",
+ "geozero",
  "strum 0.26.1",
  "tokio",
 ]
@@ -1119,6 +1121,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "geojson"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5d728c1df1fbf328d74151efe6cb0586f79ee813346ea981add69bd22c9241b"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "geos"
 version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1141,6 +1155,22 @@ dependencies = [
  "libc",
  "pkg-config",
  "semver",
+]
+
+[[package]]
+name = "geozero"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61d25cc15c7e5b86cd8dadea56bb78c46f346d4fb09022e7cbba0839c890d0a1"
+dependencies = [
+ "geo-types",
+ "geojson",
+ "geos",
+ "log",
+ "scroll",
+ "serde_json",
+ "thiserror",
+ "wkt",
 ]
 
 [[package]]
@@ -1900,6 +1930,12 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "scroll"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04c565b551bafbef4157586fa379538366e4385d42082f255bfd96e4fe8519da"
 
 [[package]]
 name = "semver"

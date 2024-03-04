@@ -99,8 +99,8 @@ impl From<&[Option<geo::Point>]> for PointArray {
 
 #[derive(Debug)]
 pub struct PointArrayBuilder {
-    pub coords: CoordBufferBuilder,
-    pub nulls: NullBufferBuilder,
+    coords: CoordBufferBuilder,
+    nulls: NullBufferBuilder,
 }
 
 impl PointArrayBuilder {

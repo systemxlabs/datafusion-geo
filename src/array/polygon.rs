@@ -111,10 +111,10 @@ impl<O: OffsetSizeTrait> From<&[Option<geo::Polygon>]> for PolygonArray<O> {
 
 #[derive(Debug)]
 pub struct PolygonArrayBuilder<O: OffsetSizeTrait> {
-    pub(crate) coords: CoordBufferBuilder,
-    pub(crate) geom_offsets: Vec<O>,
-    pub(crate) ring_offsets: Vec<O>,
-    pub(crate) nulls: NullBufferBuilder,
+    coords: CoordBufferBuilder,
+    geom_offsets: Vec<O>,
+    ring_offsets: Vec<O>,
+    nulls: NullBufferBuilder,
 }
 
 impl<O: OffsetSizeTrait> PolygonArrayBuilder<O> {
@@ -129,38 +129,21 @@ impl<O: OffsetSizeTrait> PolygonArrayBuilder<O> {
 
     pub fn push_geo_polygon(&mut self, value: Option<geo::Polygon>) {
         if let Some(polygon) = value {
+            self.geom_offsets.push(O::usize_as(self.ring_offsets.len()));
+
+            let ring_offset = O::usize_as(self.coords.len());
             let exterior_ring = polygon.exterior();
             for coord in exterior_ring.coords() {
                 self.coords.push_geo_coord(&coord);
             }
-            if let Some(last_offset) = self.ring_offsets.last() {
-                let length = O::usize_as(exterior_ring.coords_count());
-                let offset = *last_offset + length;
-                self.ring_offsets.push(offset);
-            } else {
-                self.ring_offsets.push(O::zero());
-            }
-
-            // Total number of rings in this polygon
-            if let Some(last_offset) = self.geom_offsets.last() {
-                let length = O::usize_as(polygon.num_interior_rings());
-                let offset = *last_offset + length;
-                self.geom_offsets.push(offset);
-            } else {
-                self.geom_offsets.push(O::zero());
-            }
+            self.ring_offsets.push(ring_offset);
 
             for interior_ring in polygon.interiors() {
-                if let Some(last_offset) = self.ring_offsets.last() {
-                    let length = O::usize_as(interior_ring.coords_count());
-                    let offset = *last_offset + length;
-                    self.ring_offsets.push(offset);
-                } else {
-                    self.ring_offsets.push(O::zero());
-                }
+                let ring_offset = O::usize_as(self.coords.len());
                 for coord in interior_ring.coords() {
                     self.coords.push_geo_coord(&coord);
                 }
+                self.ring_offsets.push(ring_offset);
             }
 
             self.nulls.append(true);
@@ -170,8 +153,7 @@ impl<O: OffsetSizeTrait> PolygonArrayBuilder<O> {
     }
 
     pub fn push_null(&mut self) {
-        let last_offset = self.geom_offsets.last().copied().unwrap_or(O::zero());
-        self.geom_offsets.push(last_offset);
+        self.geom_offsets.push(O::usize_as(self.ring_offsets.len()));
         self.nulls.append_null();
     }
 
