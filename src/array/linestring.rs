@@ -84,11 +84,11 @@ impl<'a, O: OffsetSizeTrait> GeometryArrayAccessor<'a> for LineStringArray<O> {
     }
 }
 
-impl<O: OffsetSizeTrait> From<&[geo::LineString]> for LineStringArray<O> {
-    fn from(value: &[geo::LineString]) -> Self {
+impl<O: OffsetSizeTrait> From<&[Option<geo::LineString>]> for LineStringArray<O> {
+    fn from(value: &[Option<geo::LineString>]) -> Self {
         let mut builder = LineStringArrayBuilder::<O>::new(value.len());
         for ls in value {
-            builder.push_geo_line_string(Some(ls.clone()));
+            builder.push_geo_line_string(ls.clone());
         }
         builder.build()
     }
@@ -113,12 +113,12 @@ impl<O: OffsetSizeTrait> LineStringArrayBuilder<O> {
 
     pub fn push_geo_line_string(&mut self, value: Option<geo::LineString>) {
         use geo::CoordsIter;
-        if let Some(value) = value {
-            for coord in value.coords() {
+        if let Some(line_string) = value {
+            for coord in line_string.coords() {
                 self.coords.push_geo_coord(coord);
             }
             if let Some(last_offset) = self.geom_offsets.last() {
-                let length = O::usize_as(value.coords_count());
+                let length = O::usize_as(line_string.coords_count());
                 let offset = *last_offset + length;
                 self.geom_offsets.push(offset);
             } else {
@@ -159,16 +159,19 @@ mod tests {
             (x: 0., y: 1.),
             (x: 1., y: 2.)
         ];
-        let ls1 = line_string![
+        let ls2 = line_string![
             (x: 3., y: 4.),
             (x: 5., y: 6.)
         ];
-        let arr: LineStringArray<i64> = vec![ls0.clone(), ls1.clone()].as_slice().into();
+        let arr: LineStringArray<i64> = vec![Some(ls0.clone()), None, Some(ls2.clone())]
+            .as_slice()
+            .into();
         assert_eq!(arr.len(), 2);
 
         let mut iterator = arr.iter_geo();
         assert_eq!(iterator.next(), Some(Some(geo::Geometry::LineString(ls0))));
-        assert_eq!(iterator.next(), Some(Some(geo::Geometry::LineString(ls1))));
+        assert_eq!(iterator.next(), Some(None));
+        assert_eq!(iterator.next(), Some(Some(geo::Geometry::LineString(ls2))));
         assert_eq!(iterator.next(), None);
     }
 }
