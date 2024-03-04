@@ -40,8 +40,11 @@ jobs:
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
 
-#      - name: Run cargo clippy
-#        run: cargo clippy --all --all-features --tests -- -D warnings
+      - name: Run cargo clippy
+        run: cargo clippy --all --all-features --tests -- -D warnings
 
       - name: Run cargo test
+        run: cargo test --all
+
+      - name: Run cargo test with all features
         run: cargo test --all --all-features

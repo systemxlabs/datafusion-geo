@@ -1,13 +1,14 @@
 use crate::geo::dialect::decode_wkb_dialect;
-use crate::geo::GeometryArrayBuilder;
 use crate::DFResult;
-use arrow::array::{Array, GenericByteArray, OffsetSizeTrait};
-use arrow::datatypes::GenericBinaryType;
-use datafusion::common::DataFusionError;
+use arrow_array::types::GenericBinaryType;
+use arrow_array::{Array, GenericByteArray, OffsetSizeTrait};
+use datafusion_common::DataFusionError;
 use geozero::wkb::{FromWkb, WkbDialect};
 
 pub trait GeometryArray {
     fn dialect(&self) -> DFResult<WkbDialect>;
+
+    fn geom_len(&self) -> usize;
 
     fn wkb(&self, index: usize) -> Option<&[u8]>;
 
@@ -50,11 +51,12 @@ impl<O: OffsetSizeTrait> GeometryArray for GenericByteArray<GenericBinaryType<O>
         }
     }
 
+    fn geom_len(&self) -> usize {
+        self.len()
+    }
+
     fn wkb(&self, index: usize) -> Option<&[u8]> {
-        if index >= self.len() {
-            return None;
-        }
-        if self.is_null(index) {
+        if index >= self.geom_len() || self.is_null(index) {
             return None;
         }
         Some(self.value(index))
@@ -64,8 +66,8 @@ impl<O: OffsetSizeTrait> GeometryArray for GenericByteArray<GenericBinaryType<O>
 #[cfg(test)]
 mod tests {
     use crate::geo::{GeometryArray, GeometryArrayBuilder};
-    use arrow::array::Array;
-    use geo::{line_string, point};
+    use arrow_array::Array;
+    use geo::{line_string, point, polygon};
 
     #[test]
     fn point_array() {
@@ -105,6 +107,178 @@ mod tests {
         assert_eq!(
             arr.geo_value(2).unwrap(),
             Some(geo::Geometry::LineString(ls2))
+        );
+        assert_eq!(arr.geo_value(3).unwrap(), None);
+    }
+
+    #[test]
+    fn polygon_array() {
+        let p0 = polygon![
+            (x: -111., y: 45.),
+            (x: -111., y: 41.),
+            (x: -104., y: 41.),
+            (x: -104., y: 45.),
+        ];
+        let p2 = polygon!(
+            exterior: [
+                (x: -111., y: 45.),
+                (x: -111., y: 41.),
+                (x: -104., y: 41.),
+                (x: -104., y: 45.),
+            ],
+            interiors: [
+                [
+                    (x: -110., y: 44.),
+                    (x: -110., y: 42.),
+                    (x: -105., y: 42.),
+                    (x: -105., y: 44.),
+                ],
+            ],
+        );
+        let builder: GeometryArrayBuilder<i32> = vec![Some(p0.clone()), None, Some(p2.clone())]
+            .as_slice()
+            .into();
+        let arr = builder.build();
+        assert_eq!(arr.len(), 3);
+
+        assert_eq!(arr.geo_value(0).unwrap(), Some(geo::Geometry::Polygon(p0)));
+        assert_eq!(arr.geo_value(1).unwrap(), None);
+        assert_eq!(arr.geo_value(2).unwrap(), Some(geo::Geometry::Polygon(p2)));
+        assert_eq!(arr.geo_value(3).unwrap(), None);
+    }
+
+    #[test]
+    fn multi_point_array() {
+        let mp0 = geo::MultiPoint::new(vec![
+            point!(
+                x: 0., y: 1.
+            ),
+            point!(
+                x: 1., y: 2.
+            ),
+        ]);
+        let mp2 = geo::MultiPoint::new(vec![
+            point!(
+                x: 3., y: 4.
+            ),
+            point!(
+                x: 5., y: 6.
+            ),
+        ]);
+        let builder: GeometryArrayBuilder<i32> = vec![Some(mp0.clone()), None, Some(mp2.clone())]
+            .as_slice()
+            .into();
+        let arr = builder.build();
+        assert_eq!(arr.len(), 3);
+
+        assert_eq!(
+            arr.geo_value(0).unwrap(),
+            Some(geo::Geometry::MultiPoint(mp0))
+        );
+        assert_eq!(arr.geo_value(1).unwrap(), None);
+        assert_eq!(
+            arr.geo_value(2).unwrap(),
+            Some(geo::Geometry::MultiPoint(mp2))
+        );
+        assert_eq!(arr.geo_value(3).unwrap(), None);
+    }
+
+    #[test]
+    fn multi_line_string_array() {
+        let ml0 = geo::MultiLineString::new(vec![line_string![
+            (x: -111., y: 45.),
+            (x: -111., y: 41.),
+            (x: -104., y: 41.),
+            (x: -104., y: 45.),
+        ]]);
+        let ml2 = geo::MultiLineString::new(vec![
+            line_string![
+                (x: -111., y: 45.),
+                (x: -111., y: 41.),
+                (x: -104., y: 41.),
+                (x: -104., y: 45.),
+            ],
+            line_string![
+                (x: -110., y: 44.),
+                (x: -110., y: 42.),
+                (x: -105., y: 42.),
+                (x: -105., y: 44.),
+            ],
+        ]);
+
+        let builder: GeometryArrayBuilder<i32> = vec![Some(ml0.clone()), None, Some(ml2.clone())]
+            .as_slice()
+            .into();
+        let arr = builder.build();
+        assert_eq!(arr.len(), 3);
+
+        assert_eq!(
+            arr.geo_value(0).unwrap(),
+            Some(geo::Geometry::MultiLineString(ml0))
+        );
+        assert_eq!(arr.geo_value(1).unwrap(), None);
+        assert_eq!(
+            arr.geo_value(2).unwrap(),
+            Some(geo::Geometry::MultiLineString(ml2))
+        );
+        assert_eq!(arr.geo_value(3).unwrap(), None);
+    }
+
+    #[test]
+    fn multi_polygon_array() {
+        let mp0 = geo::MultiPolygon::new(vec![
+            polygon![
+                (x: -111., y: 45.),
+                (x: -111., y: 41.),
+                (x: -104., y: 41.),
+                (x: -104., y: 45.),
+            ],
+            polygon!(
+                exterior: [
+                    (x: -111., y: 45.),
+                    (x: -111., y: 41.),
+                    (x: -104., y: 41.),
+                    (x: -104., y: 45.),
+                ],
+                interiors: [
+                    [
+                        (x: -110., y: 44.),
+                        (x: -110., y: 42.),
+                        (x: -105., y: 42.),
+                        (x: -105., y: 44.),
+                    ],
+                ],
+            ),
+        ]);
+        let mp2 = geo::MultiPolygon::new(vec![
+            polygon![
+                (x: -111., y: 45.),
+                (x: -111., y: 41.),
+                (x: -104., y: 41.),
+                (x: -104., y: 45.),
+            ],
+            polygon![
+                (x: -110., y: 44.),
+                (x: -110., y: 42.),
+                (x: -105., y: 42.),
+                (x: -105., y: 44.),
+            ],
+        ]);
+
+        let builder: GeometryArrayBuilder<i32> = vec![Some(mp0.clone()), None, Some(mp2.clone())]
+            .as_slice()
+            .into();
+        let arr = builder.build();
+        assert_eq!(arr.len(), 3);
+
+        assert_eq!(
+            arr.geo_value(0).unwrap(),
+            Some(geo::Geometry::MultiPolygon(mp0))
+        );
+        assert_eq!(arr.geo_value(1).unwrap(), None);
+        assert_eq!(
+            arr.geo_value(2).unwrap(),
+            Some(geo::Geometry::MultiPolygon(mp2))
         );
         assert_eq!(arr.geo_value(3).unwrap(), None);
     }

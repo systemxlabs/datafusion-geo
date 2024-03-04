@@ -1,5 +1,5 @@
 use crate::DFResult;
-use datafusion::common::DataFusionError;
+use datafusion_common::DataFusionError;
 use geozero::wkb::WkbDialect;
 
 pub(crate) fn wkb_type_id(dialect: WkbDialect) -> u8 {

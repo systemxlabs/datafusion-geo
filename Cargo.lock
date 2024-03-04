@@ -778,13 +778,15 @@ name = "datafusion-geo"
 version = "0.1.0"
 dependencies = [
  "arrow",
+ "arrow-array",
  "arrow-buffer",
- "bytes",
+ "arrow-schema",
  "datafusion",
+ "datafusion-common",
+ "datafusion-expr",
  "geo",
  "geos",
  "geozero",
- "strum 0.26.1",
  "tokio",
 ]
 

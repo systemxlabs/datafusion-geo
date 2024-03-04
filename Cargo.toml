@@ -13,12 +13,16 @@ readme = "README.md"
 geos = ["dep:geos", "geozero/with-geos"]
 
 [dependencies]
-arrow = "50"
+arrow-schema = "50"
+arrow-array = "50"
 arrow-buffer = "50"
-datafusion = "36"
-tokio = "1.36"
+datafusion-common = "36"
+datafusion-expr = "36"
 geo = "0.28"
 geos = { version = "8.3", features = ["v3_10_0", "geo"], optional = true }
 geozero = { version = "0.12", features = ["with-wkb"] }
-strum = { version = "0.26", features = ["derive"]}
-bytes = "1.5"
+
+[dev-dependencies]
+arrow = "50"
+datafusion = "36"
+tokio = "1.36"
