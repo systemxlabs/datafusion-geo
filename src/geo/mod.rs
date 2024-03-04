@@ -1,3 +1,6 @@
 mod array;
-mod buffer;
-mod scalar;
+mod builder;
+pub(crate) mod dialect;
+
+pub use array::*;
+pub use builder::*;

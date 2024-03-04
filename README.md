@@ -1,10 +1,10 @@
 # datafusion-geo 
 Add geo functionality extension to datafusion query engine.
 
-A lot of code from [geoarrow-rs](https://github.com/geoarrow/geoarrow-rs) but
-1. Simplified many abstractions and removed a lot of irrelevant code
-2. Mainly for PostGIS users
-3. Provide DataFusion user defined functions 
+**Goals**
+1. Support multiple wkb dialects
+2. Provide DataFusion user defined functions 
 
-## Reference
-1. EWKB: https://github.com/postgis/postgis/blob/master/doc/ZMSgeoms.txt
+## Useful Links
+1. Ewkb format: https://github.com/postgis/postgis/blob/master/doc/ZMSgeoms.txt
+2. PostGIS functions: https://postgis.net/docs/manual-dev/PostGIS_Special_Functions_Index.html

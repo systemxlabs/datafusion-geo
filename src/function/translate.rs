@@ -1,7 +1,4 @@
-use crate::array::{
-    GeometryArrayTrait, LineStringArray, MultiLineStringArray, MultiPointArray, MultiPolygonArray,
-    PointArray, PolygonArray,
-};
+use crate::geo::GeometryArray;
 use arrow::datatypes::DataType;
 use datafusion::logical_expr::{
     ColumnarValue, ScalarUDFImpl, Signature, TypeSignature, Volatility,
@@ -20,57 +17,12 @@ impl TranslateUdf {
             signature: Signature::one_of(
                 vec![
                     TypeSignature::Exact(vec![
-                        PointArray::data_type(),
+                        DataType::Binary,
                         DataType::Float64,
                         DataType::Float64,
                     ]),
                     TypeSignature::Exact(vec![
-                        LineStringArray::<i32>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        LineStringArray::<i64>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        PolygonArray::<i32>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        PolygonArray::<i64>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        MultiPointArray::<i32>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        MultiPointArray::<i64>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        MultiLineStringArray::<i32>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        MultiLineStringArray::<i64>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        MultiPolygonArray::<i32>::data_type(),
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        MultiPolygonArray::<i64>::data_type(),
+                        DataType::LargeBinary,
                         DataType::Float64,
                         DataType::Float64,
                     ]),
