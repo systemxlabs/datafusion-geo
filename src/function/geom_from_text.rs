@@ -1,4 +1,5 @@
 use crate::geo::GeometryArrayBuilder;
+use arrow_array::cast::AsArray;
 use arrow_schema::DataType;
 use datafusion_common::DataFusionError;
 use datafusion_common::ScalarValue;
@@ -20,10 +21,7 @@ impl GeomFromWktUdf {
             signature: Signature::one_of(
                 vec![
                     TypeSignature::Exact(vec![DataType::Utf8]),
-                    // TypeSignature::Exact(vec![
-                    //     DataType::Utf8,
-                    //     DataType::Int32,
-                    // ]),
+                    TypeSignature::Exact(vec![DataType::Utf8, DataType::Int64]),
                 ],
                 Volatility::Immutable,
             ),
@@ -50,24 +48,36 @@ impl ScalarUDFImpl for GeomFromWktUdf {
     }
 
     fn invoke(&self, args: &[ColumnarValue]) -> datafusion_common::Result<ColumnarValue> {
-        match args[0].clone() {
-            ColumnarValue::Scalar(ScalarValue::Utf8(Some(data))) => {
-                let wkt = geozero::wkt::Wkt(data);
-                let ewkb = wkt.to_ewkb(wkt.dims(), wkt.srid()).map_err(|e| {
-                    DataFusionError::Internal(format!(
-                        "Failed to convert wkt to ewkb, error: {}",
-                        e
-                    ))
-                })?;
-                let mut builder = GeometryArrayBuilder::<i32>::new(WkbDialect::Ewkb, 1);
-                builder.append_wkb(Some(&ewkb))?;
-                Ok(ColumnarValue::Array(Arc::new(builder.build())))
+        let srid = if args.len() == 2 {
+            let ColumnarValue::Scalar(ScalarValue::Int64(Some(srid))) = args[1].clone() else {
+                return Err(DataFusionError::Internal(
+                    "The second arg should be int32".to_string(),
+                ));
+            };
+            Some(srid as i32)
+        } else {
+            None
+        };
+        let arr = args[0].clone().into_array(1)?;
+        let string_arr = arr.as_string::<i32>();
+
+        let mut builder = GeometryArrayBuilder::<i32>::new(WkbDialect::Ewkb, 1);
+        for value in string_arr.iter() {
+            match value {
+                None => builder.append_null(),
+                Some(data) => {
+                    let wkt = geozero::wkt::Wkt(data);
+                    let ewkb = wkt.to_ewkb(wkt.dims(), srid.or(wkt.srid())).map_err(|e| {
+                        DataFusionError::Internal(format!(
+                            "Failed to convert wkt to ewkb, error: {}",
+                            e
+                        ))
+                    })?;
+                    builder.append_wkb(Some(&ewkb))?;
+                }
             }
-            ColumnarValue::Array(_arr) => {
-                todo!()
-            }
-            _ => unreachable!(),
         }
+        Ok(ColumnarValue::Array(Arc::new(builder.build())))
     }
 
     fn aliases(&self) -> &[String] {
@@ -105,6 +115,21 @@ mod tests {
 +-----------------------------------------------------+
 | 0101000000cb49287d21c451c0f0bf95ecd8244540          |
 +-----------------------------------------------------+"
+        );
+
+        let df = ctx
+            .sql("select ST_GeomFromText('POINT(-71.064544 42.28787)', 4269)")
+            .await
+            .unwrap();
+        assert_eq!(
+            pretty_format_batches(&df.collect().await.unwrap())
+                .unwrap()
+                .to_string(),
+            "+-----------------------------------------------------------------+
+| ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\"),Int64(4269)) |
++-----------------------------------------------------------------+
+| 0101000020ad100000cb49287d21c451c0f0bf95ecd8244540              |
++-----------------------------------------------------------------+"
         );
     }
 }
