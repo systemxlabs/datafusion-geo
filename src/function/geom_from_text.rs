@@ -139,6 +139,7 @@ mod tests {
     async fn geom_from_wkt_with_srid() {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
+        #[cfg(feature = "geos")]
         ctx.register_udf(ScalarUDF::from(crate::function::AsEwktUdf::new()));
         let df = ctx
             .sql("select ST_AsEWKT(ST_GeomFromText('POINT(-71.064544 42.28787)', 4269))")
