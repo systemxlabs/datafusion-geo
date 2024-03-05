@@ -93,12 +93,15 @@ mod tests {
             .sql("select ST_SRID(ST_GeomFromText('POINT(1 1)', 4269))")
             .await
             .unwrap();
-        let _ = df.clone().show().await;
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+----------------------------------------------------------+
+| ST_SRID(ST_GeomFromText(Utf8(\"POINT(1 1)\"),Int64(4269))) |
++----------------------------------------------------------+
+| 4269                                                     |
++----------------------------------------------------------+"
         );
     }
 }
