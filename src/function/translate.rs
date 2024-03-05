@@ -114,7 +114,7 @@ impl Default for TranslateUdf {
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{GeomFromWktUdf, TranslateUdf};
+    use crate::function::{AsTextUdf, GeomFromWktUdf, TranslateUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
@@ -124,19 +124,20 @@ mod tests {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
         ctx.register_udf(ScalarUDF::from(TranslateUdf::new()));
+        ctx.register_udf(ScalarUDF::from(AsTextUdf::new()));
         let df = ctx
-            .sql("select ST_Translate(ST_GeomFromText('POINT(-71.064544 42.28787)'), 1.0, 2.0)")
+            .sql("select ST_AsText(ST_Translate(ST_GeomFromText('POINT(-71.064544 42.28787)'), 1.0, 2.0))")
             .await
             .unwrap();
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            "+-----------------------------------------------------------------------------------------+
-| ST_Translate(ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\")),Float64(1),Float64(2)) |
-+-----------------------------------------------------------------------------------------+
-| 020101000000cb49287d218451c0f0bf95ecd8244640                                            |
-+-----------------------------------------------------------------------------------------+"
+            "+----------------------------------------------------------------------------------------------------+
+| ST_AsText(ST_Translate(ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\")),Float64(1),Float64(2))) |
++----------------------------------------------------------------------------------------------------+
+| POINT(-70.064544 44.28787)                                                                         |
++----------------------------------------------------------------------------------------------------+"
         );
     }
 }

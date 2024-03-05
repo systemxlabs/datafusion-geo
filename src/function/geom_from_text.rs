@@ -93,7 +93,7 @@ impl Default for GeomFromWktUdf {
 
 #[cfg(test)]
 mod tests {
-    use crate::function::GeomFromWktUdf;
+    use crate::function::{AsTextUdf, GeomFromWktUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
@@ -102,19 +102,20 @@ mod tests {
     async fn geom_from_wkt() {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
+        ctx.register_udf(ScalarUDF::from(AsTextUdf::new()));
         let df = ctx
-            .sql("select ST_GeomFromText('POINT(-71.064544 42.28787)')")
+            .sql("select ST_AsText(ST_GeomFromText('POINT(-71.064544 42.28787)'))")
             .await
             .unwrap();
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            "+-----------------------------------------------------+
-| ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\")) |
-+-----------------------------------------------------+
-| 020101000000cb49287d21c451c0f0bf95ecd8244540        |
-+-----------------------------------------------------+"
+            "+----------------------------------------------------------------+
+| ST_AsText(ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\"))) |
++----------------------------------------------------------------+
+| POINT(-71.064544 42.28787)                                     |
++----------------------------------------------------------------+"
         );
 
         let df = ctx
@@ -130,6 +131,25 @@ mod tests {
 +-----------------------------------------------------------------+
 | 020101000020ad100000cb49287d21c451c0f0bf95ecd8244540            |
 +-----------------------------------------------------------------+"
+        );
+    }
+
+    #[tokio::test]
+    #[cfg_attr(not(feature = "geos"), ignore)]
+    async fn geom_from_wkt_with_srid() {
+        let ctx = SessionContext::new();
+        ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
+        ctx.register_udf(ScalarUDF::from(crate::function::AsEwktUdf::new()));
+        let df = ctx
+            .sql("select ST_AsEWKT(ST_GeomFromText('POINT(-71.064544 42.28787)', 4269))")
+            .await
+            .unwrap();
+        let _ = df.clone().show().await;
+        assert_eq!(
+            pretty_format_batches(&df.collect().await.unwrap())
+                .unwrap()
+                .to_string(),
+            ""
         );
     }
 }
