@@ -17,17 +17,12 @@ pub struct GeometryArrayBuilder<O: OffsetSizeTrait> {
 
 impl<O: OffsetSizeTrait> GeometryArrayBuilder<O> {
     pub fn new(dialect: WkbDialect, capacity: usize) -> Self {
-        let type_id = wkb_type_id(dialect);
-
-        let mut value_builder = UInt8BufferBuilder::new(capacity);
-        value_builder.append(type_id);
-
         let mut offsets_builder = BufferBuilder::<O>::new(capacity + 1);
-        offsets_builder.append(O::from_usize(value_builder.len()).unwrap());
+        offsets_builder.append(O::from_usize(0).unwrap());
 
         Self {
             dialect,
-            value_builder,
+            value_builder: UInt8BufferBuilder::new(capacity),
             offsets_builder,
             null_buffer_builder: NullBufferBuilder::new(capacity),
         }
@@ -82,7 +77,9 @@ impl<O: OffsetSizeTrait> GeometryArrayBuilder<O> {
     }
 
     fn internal_append_wkb(&mut self, wkb: &[u8]) {
-        self.value_builder.append_slice(wkb);
+        let mut bytes = vec![wkb_type_id(self.dialect)];
+        bytes.extend_from_slice(wkb);
+        self.value_builder.append_slice(&bytes);
         self.null_buffer_builder.append(true);
         self.offsets_builder.append(self.next_offset());
     }
@@ -118,7 +115,7 @@ fn check_wkb(wkb: &[u8], dialect: WkbDialect) -> DFResult<()> {
 
 impl<O: OffsetSizeTrait> From<&[Option<geo::Geometry>]> for GeometryArrayBuilder<O> {
     fn from(value: &[Option<geo::Geometry>]) -> Self {
-        let mut builder = GeometryArrayBuilder::<O>::new(WkbDialect::Wkb, value.len());
+        let mut builder = GeometryArrayBuilder::<O>::new(WkbDialect::Ewkb, value.len());
         for geom in value {
             builder
                 .append_geo_geometry(geom)

@@ -3,19 +3,17 @@ use crate::DFResult;
 use arrow_array::types::GenericBinaryType;
 use arrow_array::{Array, GenericByteArray, OffsetSizeTrait};
 use datafusion_common::DataFusionError;
-use geozero::wkb::{FromWkb, WkbDialect};
+use geozero::wkb::FromWkb;
 
 pub trait GeometryArray {
-    fn dialect(&self) -> DFResult<WkbDialect>;
-
     fn geom_len(&self) -> usize;
 
-    fn wkb(&self, index: usize) -> Option<&[u8]>;
+    fn wkb(&self, geom_index: usize) -> Option<&[u8]>;
 
-    fn geo_value(&self, index: usize) -> DFResult<Option<geo::Geometry>> {
-        if let Some(wkb) = self.wkb(index) {
-            let dialect = self.dialect()?;
-            let mut rdr = std::io::Cursor::new(wkb);
+    fn geo_value(&self, geom_index: usize) -> DFResult<Option<geo::Geometry>> {
+        if let Some(wkb) = self.wkb(geom_index) {
+            let dialect = decode_wkb_dialect(wkb[0])?;
+            let mut rdr = std::io::Cursor::new(&wkb[1..]);
             let value = geo::Geometry::from_wkb(&mut rdr, dialect).map_err(|e| {
                 DataFusionError::Internal(format!("Failed to parse wkb, error: {}", e))
             })?;
@@ -26,10 +24,10 @@ pub trait GeometryArray {
     }
 
     #[cfg(feature = "geos")]
-    fn geos_value(&self, index: usize) -> DFResult<Option<geos::Geometry>> {
-        if let Some(wkb) = self.wkb(index) {
-            let dialect = self.dialect()?;
-            let mut rdr = std::io::Cursor::new(wkb);
+    fn geos_value(&self, geom_index: usize) -> DFResult<Option<geos::Geometry>> {
+        if let Some(wkb) = self.wkb(geom_index) {
+            let dialect = decode_wkb_dialect(wkb[0])?;
+            let mut rdr = std::io::Cursor::new(&wkb[1..]);
             let value = geos::Geometry::from_wkb(&mut rdr, dialect).map_err(|e| {
                 DataFusionError::Internal(format!("Failed to parse wkb, error: {}", e))
             })?;
@@ -41,32 +39,21 @@ pub trait GeometryArray {
 }
 
 impl<O: OffsetSizeTrait> GeometryArray for GenericByteArray<GenericBinaryType<O>> {
-    fn dialect(&self) -> DFResult<WkbDialect> {
-        if let Some(b) = self.value_data().first() {
-            decode_wkb_dialect(*b)
-        } else {
-            Err(DataFusionError::Internal(
-                "Cannot get dialect as data is empty".to_string(),
-            ))
-        }
-    }
-
     fn geom_len(&self) -> usize {
         self.len()
     }
 
-    fn wkb(&self, index: usize) -> Option<&[u8]> {
-        if index >= self.geom_len() || self.is_null(index) {
+    fn wkb(&self, geom_index: usize) -> Option<&[u8]> {
+        if geom_index >= self.geom_len() || self.is_null(geom_index) {
             return None;
         }
-        Some(self.value(index))
+        Some(self.value(geom_index))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::geo::{GeometryArray, GeometryArrayBuilder};
-    use arrow_array::Array;
     use geo::{line_string, point, polygon};
 
     #[test]
@@ -75,7 +62,7 @@ mod tests {
         let p2 = point!(x: 2f64, y: 3f64);
         let builder: GeometryArrayBuilder<i32> = vec![Some(p0), None, Some(p2)].as_slice().into();
         let arr = builder.build();
-        assert_eq!(arr.len(), 3);
+        assert_eq!(arr.geom_len(), 3);
 
         assert_eq!(arr.geo_value(0).unwrap(), Some(geo::Geometry::Point(p0)));
         assert_eq!(arr.geo_value(1).unwrap(), None);
@@ -97,7 +84,7 @@ mod tests {
             .as_slice()
             .into();
         let arr = builder.build();
-        assert_eq!(arr.len(), 3);
+        assert_eq!(arr.geom_len(), 3);
 
         assert_eq!(
             arr.geo_value(0).unwrap(),
@@ -139,7 +126,7 @@ mod tests {
             .as_slice()
             .into();
         let arr = builder.build();
-        assert_eq!(arr.len(), 3);
+        assert_eq!(arr.geom_len(), 3);
 
         assert_eq!(arr.geo_value(0).unwrap(), Some(geo::Geometry::Polygon(p0)));
         assert_eq!(arr.geo_value(1).unwrap(), None);
@@ -169,7 +156,7 @@ mod tests {
             .as_slice()
             .into();
         let arr = builder.build();
-        assert_eq!(arr.len(), 3);
+        assert_eq!(arr.geom_len(), 3);
 
         assert_eq!(
             arr.geo_value(0).unwrap(),
@@ -210,7 +197,7 @@ mod tests {
             .as_slice()
             .into();
         let arr = builder.build();
-        assert_eq!(arr.len(), 3);
+        assert_eq!(arr.geom_len(), 3);
 
         assert_eq!(
             arr.geo_value(0).unwrap(),
@@ -269,7 +256,7 @@ mod tests {
             .as_slice()
             .into();
         let arr = builder.build();
-        assert_eq!(arr.len(), 3);
+        assert_eq!(arr.geom_len(), 3);
 
         assert_eq!(
             arr.geo_value(0).unwrap(),
