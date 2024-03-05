@@ -4,6 +4,7 @@ Add geo functionality extension to datafusion query engine.
 **Goals**
 1. Support multiple wkb dialects
 2. Provide DataFusion user defined functions 
+3. Prefer using geos library if feature flag enabled
 
 ## Useful Links
 1. Ewkb format: https://github.com/postgis/postgis/blob/master/doc/ZMSgeoms.txt

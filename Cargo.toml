@@ -25,4 +25,22 @@ geozero = { version = "0.12", features = ["with-wkb"] }
 [dev-dependencies]
 arrow = "50"
 datafusion = "36"
-tokio = "1.36"
+tokio = { version = "1.36", features = ["full"] }
+criterion = { version = "0.5.1", features = ["async_tokio"] }
+geoarrow = { git = "https://github.com/geoarrow/geoarrow-rs.git", rev = "0e4473e546248d2c2cbfb44df76d508660761261" }
+
+[[bench]]
+name = "geo_bench"
+path = "benches/geo_bench.rs"
+harness = false
+
+[[bench]]
+name = "geos_bench"
+path = "benches/geos_bench.rs"
+harness = false
+required-features = ["geos"]
+
+[[bench]]
+name = "geoarrow_bench"
+path = "benches/geoarrow_bench.rs"
+harness = false
