@@ -90,13 +90,13 @@ fn to_ewkt<O: OffsetSizeTrait>(
     geom_index: usize,
 ) -> DFResult<Option<String>> {
     let geom = wkb_arr.geos_value(geom_index)?;
-    let wkt = match geom {
+    let ewkt = match geom {
         Some(geom) => Some(geom.to_ewkt(geom.srid()).map_err(|_| {
             DataFusionError::Internal("Failed to convert geometry to ewkt".to_string())
         })?),
         None => None,
     };
-    Ok(wkt)
+    Ok(ewkt)
 }
 
 impl Default for AsEwktUdf {
