@@ -67,7 +67,7 @@ impl ScalarUDFImpl for GeomFromWktUdf {
                 None => builder.append_null(),
                 Some(data) => {
                     let wkt = geozero::wkt::Wkt(data);
-                    let ewkb = wkt.to_ewkb(wkt.dims(), srid.or(wkt.srid())).map_err(|e| {
+                    let ewkb = wkt.to_ewkb(wkt.dims(), srid).map_err(|e| {
                         DataFusionError::Internal(format!(
                             "Failed to convert wkt to ewkb, error: {}",
                             e

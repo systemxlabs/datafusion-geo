@@ -50,7 +50,7 @@ impl ScalarUDFImpl for SridUdf {
                 let wkb_arr = arr.as_binary::<i32>();
                 let mut srid_vec = vec![];
                 for i in 0..wkb_arr.geom_len() {
-                    srid_vec.push(wkb_arr.geo_value(i)?.and_then(|geom| geom.srid()));
+                    srid_vec.push(wkb_arr.geos_value(i)?.and_then(|geom| geom.srid()));
                 }
                 Ok(ColumnarValue::Array(Arc::new(Int32Array::from(srid_vec))))
             }
@@ -58,7 +58,7 @@ impl ScalarUDFImpl for SridUdf {
                 let wkb_arr = arr.as_binary::<i64>();
                 let mut srid_vec = vec![];
                 for i in 0..wkb_arr.geom_len() {
-                    srid_vec.push(wkb_arr.geo_value(i)?.and_then(|geom| geom.srid()));
+                    srid_vec.push(wkb_arr.geos_value(i)?.and_then(|geom| geom.srid()));
                 }
                 Ok(ColumnarValue::Array(Arc::new(Int32Array::from(srid_vec))))
             }
@@ -85,7 +85,6 @@ mod tests {
     use datafusion::prelude::SessionContext;
 
     #[tokio::test]
-    #[ignore]
     async fn srid() {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
@@ -94,15 +93,12 @@ mod tests {
             .sql("select ST_SRID(ST_GeomFromText('POINT(1 1)', 4269))")
             .await
             .unwrap();
+        df.clone().show().await;
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            "+-----------------------------------------------------------------------------------------------------+
-| ST_Intersects(ST_GeomFromText(Utf8(\"POINT(1 1)\")),ST_GeomFromText(Utf8(\"LINESTRING ( 1 1, 0 2 )\"))) |
-+-----------------------------------------------------------------------------------------------------+
-| true                                                                                                |
-+-----------------------------------------------------------------------------------------------------+"
+            ""
         );
     }
 }

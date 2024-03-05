@@ -1350,8 +1350,7 @@ dependencies = [
 [[package]]
 name = "geozero"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61d25cc15c7e5b86cd8dadea56bb78c46f346d4fb09022e7cbba0839c890d0a1"
+source = "git+https://github.com/lewiszlw/geozero.git?rev=2516bdf9dae4857ba8e4c2c7642f6692e0b699f3#2516bdf9dae4857ba8e4c2c7642f6692e0b699f3"
 dependencies = [
  "geo-types",
  "geojson",
