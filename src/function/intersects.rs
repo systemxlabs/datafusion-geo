@@ -5,6 +5,7 @@ use arrow_array::{Array, BooleanArray, GenericBinaryArray, OffsetSizeTrait};
 use arrow_schema::DataType;
 use datafusion_common::DataFusionError;
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, Volatility};
+use rayon::prelude::*;
 use std::any::Any;
 use std::sync::Arc;
 
@@ -66,38 +67,22 @@ impl ScalarUDFImpl for IntersectsUdf {
             (DataType::Binary, DataType::Binary) => {
                 let arr0 = arr0.as_binary::<i32>();
                 let arr1 = arr1.as_binary::<i32>();
-                let mut bool_vec = vec![];
-                for i in 0..arr0.len() {
-                    bool_vec.push(intersects::<i32, i32>(arr0, arr1, i)?);
-                }
-                Ok(ColumnarValue::Array(Arc::new(BooleanArray::from(bool_vec))))
+                intersects::<i32, i32>(arr0, arr1)
             }
             (DataType::LargeBinary, DataType::Binary) => {
                 let arr0 = arr0.as_binary::<i64>();
                 let arr1 = arr1.as_binary::<i32>();
-                let mut bool_vec = vec![];
-                for i in 0..arr0.len() {
-                    bool_vec.push(intersects::<i64, i32>(arr0, arr1, i)?);
-                }
-                Ok(ColumnarValue::Array(Arc::new(BooleanArray::from(bool_vec))))
+                intersects::<i64, i32>(arr0, arr1)
             }
             (DataType::Binary, DataType::LargeBinary) => {
                 let arr0 = arr0.as_binary::<i32>();
                 let arr1 = arr1.as_binary::<i64>();
-                let mut bool_vec = vec![];
-                for i in 0..arr0.len() {
-                    bool_vec.push(intersects::<i32, i64>(arr0, arr1, i)?);
-                }
-                Ok(ColumnarValue::Array(Arc::new(BooleanArray::from(bool_vec))))
+                intersects::<i32, i64>(arr0, arr1)
             }
             (DataType::LargeBinary, DataType::LargeBinary) => {
                 let arr0 = arr0.as_binary::<i64>();
                 let arr1 = arr1.as_binary::<i64>();
-                let mut bool_vec = vec![];
-                for i in 0..arr0.len() {
-                    bool_vec.push(intersects::<i64, i64>(arr0, arr1, i)?);
-                }
-                Ok(ColumnarValue::Array(Arc::new(BooleanArray::from(bool_vec))))
+                intersects::<i64, i64>(arr0, arr1)
             }
             _ => unreachable!(),
         }
@@ -117,30 +102,38 @@ impl Default for IntersectsUdf {
 fn intersects<O: OffsetSizeTrait, F: OffsetSizeTrait>(
     arr0: &GenericBinaryArray<O>,
     arr1: &GenericBinaryArray<F>,
-    geom_index: usize,
-) -> DFResult<Option<bool>> {
-    #[cfg(feature = "geos")]
-    {
-        use datafusion_common::DataFusionError;
-        use geos::Geom;
-        match (arr0.geos_value(geom_index)?, arr1.geos_value(geom_index)?) {
-            (Some(geom0), Some(geom1)) => {
-                let result = geom0.intersects(&geom1).map_err(|e| {
-                    DataFusionError::Internal(format!("Failed to do intersects, error: {}", e))
-                })?;
-                Ok(Some(result))
+) -> DFResult<ColumnarValue> {
+    let bool_vec = (0..arr0.len())
+        .into_par_iter()
+        .map(|geom_index| {
+            #[cfg(feature = "geos")]
+            {
+                use datafusion_common::DataFusionError;
+                use geos::Geom;
+                match (arr0.geos_value(geom_index)?, arr1.geos_value(geom_index)?) {
+                    (Some(geom0), Some(geom1)) => {
+                        let result = geom0.intersects(&geom1).map_err(|e| {
+                            DataFusionError::Internal(format!(
+                                "Failed to do intersects, error: {}",
+                                e
+                            ))
+                        })?;
+                        Ok(Some(result))
+                    }
+                    _ => Ok(None),
+                }
             }
-            _ => Ok(None),
-        }
-    }
-    #[cfg(not(feature = "geos"))]
-    {
-        use geo::Intersects;
-        match (arr0.geo_value(geom_index)?, arr1.geo_value(geom_index)?) {
-            (Some(geom0), Some(geom1)) => Ok(Some(geom0.intersects(&geom1))),
-            _ => Ok(None),
-        }
-    }
+            #[cfg(not(feature = "geos"))]
+            {
+                use geo::Intersects;
+                match (arr0.geo_value(geom_index)?, arr1.geo_value(geom_index)?) {
+                    (Some(geom0), Some(geom1)) => Ok(Some(geom0.intersects(&geom1))),
+                    _ => Ok(None),
+                }
+            }
+        })
+        .collect::<DFResult<Vec<Option<bool>>>>()?;
+    Ok(ColumnarValue::Array(Arc::new(BooleanArray::from(bool_vec))))
 }
 
 #[cfg(test)]

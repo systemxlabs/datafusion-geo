@@ -948,6 +948,7 @@ dependencies = [
  "geoarrow",
  "geos",
  "geozero",
+ "rayon",
  "tokio",
 ]
 
