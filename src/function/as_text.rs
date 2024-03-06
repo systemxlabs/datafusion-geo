@@ -116,7 +116,7 @@ impl Default for AsTextUdf {
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{AsTextUdf, GeomFromWktUdf};
+    use crate::function::{AsTextUdf, GeomFromTextUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
@@ -124,7 +124,7 @@ mod tests {
     #[tokio::test]
     async fn as_text() {
         let ctx = SessionContext::new();
-        ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
+        ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
         ctx.register_udf(ScalarUDF::from(AsTextUdf::new()));
         let df = ctx
             .sql("select ST_AsText(ST_GeomFromText('POINT(-71.064544 42.28787)'))")

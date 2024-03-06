@@ -1,5 +1,9 @@
-# datafusion-geo 
+# datafusion-geo
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+[![Crates.io](https://img.shields.io/crates/v/datafusion-geo.svg)](https://crates.io/crates/datafusion-geo)
+
 Add geo functionality extension to datafusion query engine.
+
 
 **Goals**
 1. Support multiple wkb dialects

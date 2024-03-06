@@ -2,6 +2,7 @@
 mod as_ewkt;
 mod as_text;
 mod geom_from_text;
+mod geom_from_wkb;
 mod intersects;
 #[cfg(feature = "geos")]
 mod srid;

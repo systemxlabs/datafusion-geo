@@ -114,7 +114,7 @@ impl Default for TranslateUdf {
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{AsTextUdf, GeomFromWktUdf, TranslateUdf};
+    use crate::function::{AsTextUdf, GeomFromTextUdf, TranslateUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
@@ -122,7 +122,7 @@ mod tests {
     #[tokio::test]
     async fn translate() {
         let ctx = SessionContext::new();
-        ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
+        ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
         ctx.register_udf(ScalarUDF::from(TranslateUdf::new()));
         ctx.register_udf(ScalarUDF::from(AsTextUdf::new()));
         let df = ctx

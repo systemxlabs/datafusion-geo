@@ -10,33 +10,33 @@ use std::any::Any;
 use std::sync::Arc;
 
 #[derive(Debug)]
-pub struct GeomFromTextUdf {
+pub struct GeomFromWkbUdf {
     signature: Signature,
     aliases: Vec<String>,
 }
 
-impl GeomFromTextUdf {
+impl GeomFromWkbUdf {
     pub fn new() -> Self {
         Self {
             signature: Signature::one_of(
                 vec![
-                    TypeSignature::Exact(vec![DataType::Utf8]),
-                    TypeSignature::Exact(vec![DataType::Utf8, DataType::Int64]),
+                    TypeSignature::Exact(vec![DataType::Binary]),
+                    TypeSignature::Exact(vec![DataType::Binary, DataType::Int64]),
                 ],
                 Volatility::Immutable,
             ),
-            aliases: vec!["st_geomfromtext".to_string()],
+            aliases: vec!["st_geomfromwkb".to_string()],
         }
     }
 }
 
-impl ScalarUDFImpl for GeomFromTextUdf {
+impl ScalarUDFImpl for GeomFromWkbUdf {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
     fn name(&self) -> &str {
-        "ST_GeomFromText"
+        "ST_GeomFromWKB"
     }
 
     fn signature(&self) -> &Signature {
@@ -59,17 +59,17 @@ impl ScalarUDFImpl for GeomFromTextUdf {
             None
         };
         let arr = args[0].clone().into_array(1)?;
-        let string_arr = arr.as_string::<i32>();
+        let binary_arr = arr.as_binary::<i32>();
 
         let mut builder = GeometryArrayBuilder::<i32>::new(WkbDialect::Ewkb, 1);
-        for value in string_arr.iter() {
+        for value in binary_arr.iter() {
             match value {
                 None => builder.append_null(),
                 Some(data) => {
-                    let wkt = geozero::wkt::Wkt(data);
-                    let ewkb = wkt.to_ewkb(wkt.dims(), srid).map_err(|e| {
+                    let wkb = geozero::wkb::Wkb(data);
+                    let ewkb = wkb.to_ewkb(wkb.dims(), srid).map_err(|e| {
                         DataFusionError::Internal(format!(
-                            "Failed to convert wkt to ewkb, error: {}",
+                            "Failed to convert wkb to ewkb, error: {}",
                             e
                         ))
                     })?;
@@ -85,7 +85,7 @@ impl ScalarUDFImpl for GeomFromTextUdf {
     }
 }
 
-impl Default for GeomFromTextUdf {
+impl Default for GeomFromWkbUdf {
     fn default() -> Self {
         Self::new()
     }
@@ -93,51 +93,49 @@ impl Default for GeomFromTextUdf {
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{AsTextUdf, GeomFromTextUdf};
+    use crate::function::geom_from_wkb::GeomFromWkbUdf;
+    use crate::function::AsTextUdf;
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
 
     #[tokio::test]
-    async fn geom_from_text() {
+    async fn geom_from_wkb() {
         let ctx = SessionContext::new();
-        ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
+        ctx.register_udf(ScalarUDF::from(GeomFromWkbUdf::new()));
         ctx.register_udf(ScalarUDF::from(AsTextUdf::new()));
         let df = ctx
-            .sql("select ST_AsText(ST_GeomFromText('POINT(-71.064544 42.28787)'))")
+            .sql("select ST_AsText(ST_GeomFromWKB(0x0101000000cb49287d21c451c0f0bf95ecd8244540))")
             .await
             .unwrap();
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            "+----------------------------------------------------------------+
-| ST_AsText(ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\"))) |
-+----------------------------------------------------------------+
-| POINT(-71.064544 42.28787)                                     |
-+----------------------------------------------------------------+"
+            "+---------------------------------------------------------------------------------------------------------+
+| ST_AsText(ST_GeomFromWKB(Binary(\"1,1,0,0,0,203,73,40,125,33,196,81,192,240,191,149,236,216,36,69,64\"))) |
++---------------------------------------------------------------------------------------------------------+
+| POINT(-71.064544 42.28787)                                                                              |
++---------------------------------------------------------------------------------------------------------+"
         );
     }
 
     #[cfg(feature = "geos")]
     #[tokio::test]
-    async fn geom_from_text_with_srid() {
+    async fn geom_from_wkb_with_srid() {
         let ctx = SessionContext::new();
-        ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
+        ctx.register_udf(ScalarUDF::from(GeomFromWkbUdf::new()));
         ctx.register_udf(ScalarUDF::from(crate::function::AsEwktUdf::new()));
         let df = ctx
-            .sql("select ST_AsEWKT(ST_GeomFromText('POINT(-71.064544 42.28787)', 4269))")
+            .sql("select ST_AsEWKT(ST_GeomFromWKB(0x0101000000cb49287d21c451c0f0bf95ecd8244540, 4269))")
             .await
             .unwrap();
+        let _ = df.clone().show().await;
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            "+----------------------------------------------------------------------------+
-| ST_AsEWKT(ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\"),Int64(4269))) |
-+----------------------------------------------------------------------------+
-| SRID=4269;POINT(-71.064544 42.28787)                                       |
-+----------------------------------------------------------------------------+"
+            ""
         );
     }
 }

@@ -107,7 +107,7 @@ impl Default for AsEwktUdf {
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{AsEwktUdf, GeomFromWktUdf};
+    use crate::function::{AsEwktUdf, GeomFromTextUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
@@ -115,7 +115,7 @@ mod tests {
     #[tokio::test]
     async fn as_ewkt() {
         let ctx = SessionContext::new();
-        ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
+        ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
         ctx.register_udf(ScalarUDF::from(AsEwktUdf::new()));
         let df = ctx
             .sql("select ST_AsEWKT(ST_GeomFromText('POINT(-71.064544 42.28787)', 4269))")

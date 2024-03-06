@@ -133,7 +133,7 @@ fn intersects<O: OffsetSizeTrait, F: OffsetSizeTrait>(
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{GeomFromWktUdf, IntersectsUdf};
+    use crate::function::{GeomFromTextUdf, IntersectsUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
@@ -141,7 +141,7 @@ mod tests {
     #[tokio::test]
     async fn intersects() {
         let ctx = SessionContext::new();
-        ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
+        ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
         ctx.register_udf(ScalarUDF::from(IntersectsUdf::new()));
         let df = ctx
             .sql("select ST_Intersects(ST_GeomFromText('POINT(1 1)'), ST_GeomFromText('LINESTRING ( 1 1, 0 2 )'))")
