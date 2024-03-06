@@ -50,10 +50,11 @@ impl ScalarUDFImpl for Box2dUdf {
                 let wkb_arr = arr.as_binary::<i32>();
                 let mut box2d_vec: Vec<Option<Box2D>> = vec![];
                 for i in 0..wkb_arr.geom_len() {
-                    box2d_vec.push(wkb_arr.geo_value(i)?.and_then(|geom| {
-                        geom.bounding_rect()
-                            .and_then(|rect| Some(Box2D::from(rect)))
-                    }));
+                    box2d_vec.push(
+                        wkb_arr
+                            .geo_value(i)?
+                            .and_then(|geom| geom.bounding_rect().map(Box2D::from)),
+                    );
                 }
                 let arr = build_box2d_array(box2d_vec);
                 Ok(ColumnarValue::Array(Arc::new(arr)))
@@ -62,10 +63,11 @@ impl ScalarUDFImpl for Box2dUdf {
                 let wkb_arr = arr.as_binary::<i64>();
                 let mut box2d_vec: Vec<Option<Box2D>> = vec![];
                 for i in 0..wkb_arr.geom_len() {
-                    box2d_vec.push(wkb_arr.geo_value(i)?.and_then(|geom| {
-                        geom.bounding_rect()
-                            .and_then(|rect| Some(Box2D::from(rect)))
-                    }));
+                    box2d_vec.push(
+                        wkb_arr
+                            .geo_value(i)?
+                            .and_then(|geom| geom.bounding_rect().map(Box2D::from)),
+                    );
                 }
                 let arr = build_box2d_array(box2d_vec);
                 Ok(ColumnarValue::Array(Arc::new(arr)))
