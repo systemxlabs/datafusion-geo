@@ -82,6 +82,7 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
         } else {
             None
         };
+
         let coords = CoordSeq::new_from_vec(&[
             &[xmin, ymin],
             &[xmin, ymax],
@@ -94,6 +95,7 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
             .map_err(|_| DataFusionError::Internal("Failed to create exterior".to_string()))?;
         let mut polygon = geos::Geometry::create_polygon(exterior, vec![])
             .map_err(|_| DataFusionError::Internal("Failed to create polygon".to_string()))?;
+
         let mut builder = if let Some(srid) = srid {
             polygon.set_srid(srid as usize);
             GeometryArrayBuilder::<i32>::new(WkbDialect::Ewkb, 1)
@@ -101,6 +103,7 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
             GeometryArrayBuilder::<i32>::new(WkbDialect::Wkb, 1)
         };
         builder.append_geos_geometry(&Some(polygon))?;
+
         let wkb_arr = builder.build();
         Ok(ColumnarValue::Array(Arc::new(wkb_arr)))
     }
