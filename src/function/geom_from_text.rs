@@ -117,40 +117,27 @@ mod tests {
 | POINT(-71.064544 42.28787)                                     |
 +----------------------------------------------------------------+"
         );
-
-        let df = ctx
-            .sql("select ST_GeomFromText('POINT(-71.064544 42.28787)', 4269)")
-            .await
-            .unwrap();
-        assert_eq!(
-            pretty_format_batches(&df.collect().await.unwrap())
-                .unwrap()
-                .to_string(),
-            "+-----------------------------------------------------------------+
-| ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\"),Int64(4269)) |
-+-----------------------------------------------------------------+
-| 020101000020ad100000cb49287d21c451c0f0bf95ecd8244540            |
-+-----------------------------------------------------------------+"
-        );
     }
 
+    #[cfg(feature = "geos")]
     #[tokio::test]
-    #[cfg_attr(not(feature = "geos"), ignore)]
     async fn geom_from_wkt_with_srid() {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromWktUdf::new()));
-        #[cfg(feature = "geos")]
         ctx.register_udf(ScalarUDF::from(crate::function::AsEwktUdf::new()));
         let df = ctx
             .sql("select ST_AsEWKT(ST_GeomFromText('POINT(-71.064544 42.28787)', 4269))")
             .await
             .unwrap();
-        let _ = df.clone().show().await;
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+----------------------------------------------------------------------------+
+| ST_AsEWKT(ST_GeomFromText(Utf8(\"POINT(-71.064544 42.28787)\"),Int64(4269))) |
++----------------------------------------------------------------------------+
+| SRID=4269;POINT(-71.064544 42.28787)                                       |
++----------------------------------------------------------------------------+"
         );
     }
 }

@@ -21,7 +21,7 @@ datafusion-expr = "36"
 geo = "0.28"
 geos = { version = "8.3", features = ["v3_10_0", "geo"], optional = true }
 #geozero = { version = "0.12", features = ["with-wkb"] }
-geozero = { git = "https://github.com/lewiszlw/geozero.git", rev = "2516bdf9dae4857ba8e4c2c7642f6692e0b699f3", features = ["with-wkb"] }
+geozero = { git = "https://github.com/lewiszlw/geozero.git", rev = "40e33a714b624b90497ec7032ac5be1d9f02aa13", features = ["with-wkb"] }
 
 [dev-dependencies]
 arrow = "50"
