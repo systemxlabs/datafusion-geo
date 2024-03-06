@@ -108,7 +108,6 @@ fn intersects<O: OffsetSizeTrait, F: OffsetSizeTrait>(
         .map(|geom_index| {
             #[cfg(feature = "geos")]
             {
-                use datafusion_common::DataFusionError;
                 use geos::Geom;
                 match (arr0.geos_value(geom_index)?, arr1.geos_value(geom_index)?) {
                     (Some(geom0), Some(geom1)) => {
