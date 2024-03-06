@@ -1,4 +1,3 @@
-use crate::function::IntersectsUdf;
 use crate::geo::GeometryArrayBuilder;
 use arrow_schema::DataType;
 use datafusion_common::{DataFusionError, ScalarValue};
@@ -61,25 +60,25 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
         let error = Err(DataFusionError::Internal(
             "The arg should be float64".to_string(),
         ));
-        let ColumnarValue::Scalar(ScalarValue::Float64(Some(xmin))) = &args[0] else {
+        let ColumnarValue::Scalar(ScalarValue::Float64(Some(xmin))) = args[0] else {
             return error;
         };
-        let ColumnarValue::Scalar(ScalarValue::Float64(Some(ymin))) = &args[1] else {
+        let ColumnarValue::Scalar(ScalarValue::Float64(Some(ymin))) = args[1] else {
             return error;
         };
-        let ColumnarValue::Scalar(ScalarValue::Float64(Some(xmax))) = &args[2] else {
+        let ColumnarValue::Scalar(ScalarValue::Float64(Some(xmax))) = args[2] else {
             return error;
         };
-        let ColumnarValue::Scalar(ScalarValue::Float64(Some(ymax))) = &args[3] else {
+        let ColumnarValue::Scalar(ScalarValue::Float64(Some(ymax))) = args[3] else {
             return error;
         };
         let srid = if args.len() == 5 {
-            let ColumnarValue::Scalar(ScalarValue::Int64(Some(srid))) = &args[4] else {
+            let ColumnarValue::Scalar(ScalarValue::Int64(Some(srid))) = args[4] else {
                 return Err(DataFusionError::Internal(
                     "The fifth arg should be int64".to_string(),
                 ));
             };
-            Some(*srid as i32)
+            Some(srid)
         } else {
             None
         };
@@ -91,7 +90,7 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
             &[xmin, ymin],
         ])
         .map_err(|_| DataFusionError::Internal("Failed to create coord req".to_string()))?;
-        let exterior = geos::Geometry::create_line_string(coords)
+        let exterior = geos::Geometry::create_linear_ring(coords)
             .map_err(|_| DataFusionError::Internal("Failed to create exterior".to_string()))?;
         let mut polygon = geos::Geometry::create_polygon(exterior, vec![])
             .map_err(|_| DataFusionError::Internal("Failed to create polygon".to_string()))?;
@@ -104,6 +103,10 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
         builder.append_geos_geometry(&Some(polygon))?;
         let wkb_arr = builder.build();
         Ok(ColumnarValue::Array(Arc::new(wkb_arr)))
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
     }
 }
 
@@ -121,7 +124,6 @@ mod tests {
     use datafusion::prelude::SessionContext;
 
     #[tokio::test]
-    #[ignore]
     async fn make_envelope() {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(MakeEnvelopeUdf::new()));
@@ -134,7 +136,11 @@ mod tests {
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+---------------------------------------------------------------------+
+| ST_AsEWKT(ST_MakeEnvelope(Int64(10),Int64(10),Int64(11),Int64(11))) |
++---------------------------------------------------------------------+
+| POLYGON((10 10,10 11,11 11,11 10,10 10))                            |
++---------------------------------------------------------------------+"
         );
 
         let df = ctx
@@ -145,7 +151,11 @@ mod tests {
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+---------------------------------------------------------------------------------+
+| ST_AsEWKT(ST_MakeEnvelope(Int64(10),Int64(10),Int64(11),Int64(11),Int64(4236))) |
++---------------------------------------------------------------------------------+
+| SRID=4236;POLYGON((10 10,10 11,11 11,11 10,10 10))                              |
++---------------------------------------------------------------------------------+"
         );
     }
 }
