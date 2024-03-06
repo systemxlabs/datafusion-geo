@@ -24,8 +24,7 @@ pub fn create_session_with_data() -> SessionContext {
         true,
     )]));
 
-    let mut batches = vec![];
-    let mut geoarrow_batches = vec![];
+    let mut linestring_vec = vec![];
     for i in 0..1000000 {
         let i = i as f64;
         let linestring = line_string![
@@ -33,21 +32,34 @@ pub fn create_session_with_data() -> SessionContext {
             (x: i + 2.0, y: i + 3.0),
             (x: i + 4.0, y: i + 5.0),
         ];
-
-        let builder: GeometryArrayBuilder<i32> = vec![Some(linestring.clone())].as_slice().into();
-        let record = RecordBatch::try_new(schema.clone(), vec![Arc::new(builder.build())]).unwrap();
-        batches.push(record);
-
-        let wkb_arr: WKBArray<i32> = vec![Some(geo::Geometry::LineString(linestring))]
-            .as_slice()
-            .try_into()
-            .unwrap();
-        let geoarrow_record =
-            RecordBatch::try_new(schema.clone(), vec![Arc::new(wkb_arr.into_arrow())]).unwrap();
-        geoarrow_batches.push(geoarrow_record);
+        linestring_vec.push(Some(geo::Geometry::LineString(linestring)));
     }
-    let mem_table = MemTable::try_new(schema.clone(), vec![batches]).unwrap();
-    let geoarrow_mem_table = MemTable::try_new(schema.clone(), vec![geoarrow_batches]).unwrap();
+
+    let builder: GeometryArrayBuilder<i32> = linestring_vec.as_slice().into();
+    let record = RecordBatch::try_new(schema.clone(), vec![Arc::new(builder.build())]).unwrap();
+
+    let wkb_arr: WKBArray<i32> = linestring_vec.as_slice().try_into().unwrap();
+    let geoarrow_record =
+        RecordBatch::try_new(schema.clone(), vec![Arc::new(wkb_arr.into_arrow())]).unwrap();
+
+    let mem_table = MemTable::try_new(
+        schema.clone(),
+        vec![
+            vec![record.clone()],
+            vec![record.clone()],
+            vec![record.clone()],
+        ],
+    )
+    .unwrap();
+    let geoarrow_mem_table = MemTable::try_new(
+        schema.clone(),
+        vec![
+            vec![geoarrow_record.clone()],
+            vec![geoarrow_record.clone()],
+            vec![geoarrow_record.clone()],
+        ],
+    )
+    .unwrap();
 
     let ctx = SessionContext::new();
     ctx.register_table("geom_table", Arc::new(mem_table))
