@@ -71,6 +71,17 @@ impl TryFrom<&ScalarValue> for Box2D {
     }
 }
 
+impl From<geo::Rect> for Box2D {
+    fn from(value: geo::Rect) -> Self {
+        Self {
+            xmin: value.min().x,
+            ymin: value.min().y,
+            xmax: value.max().x,
+            ymax: value.max().y,
+        }
+    }
+}
+
 pub fn build_box2d_array(data: Vec<Option<Box2D>>) -> StructArray {
     let xmin_arr = Arc::new(Float64Array::from(
         data.iter()
@@ -107,7 +118,7 @@ mod tests {
     use arrow_array::{Array, StructArray};
 
     #[test]
-    fn box2d() {
+    fn box2d_array() {
         let box2d0 = Box2D {
             xmin: 1.0,
             ymin: 2.0,

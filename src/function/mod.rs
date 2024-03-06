@@ -1,6 +1,7 @@
 #[cfg(feature = "geos")]
 mod as_ewkt;
 mod as_text;
+mod box2d;
 mod geom_from_text;
 mod geom_from_wkb;
 mod geometry_type;
