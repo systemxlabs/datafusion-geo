@@ -3,6 +3,7 @@ mod as_ewkt;
 mod as_text;
 mod geom_from_text;
 mod geom_from_wkb;
+mod geometry_type;
 mod intersects;
 #[cfg(feature = "geos")]
 mod srid;
@@ -12,6 +13,7 @@ mod translate;
 pub use as_ewkt::*;
 pub use as_text::*;
 pub use geom_from_text::*;
+pub use geometry_type::*;
 pub use intersects::*;
 #[cfg(feature = "geos")]
 pub use srid::*;
