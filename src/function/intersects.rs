@@ -3,7 +3,7 @@ use crate::DFResult;
 use arrow_array::cast::AsArray;
 use arrow_array::{Array, BooleanArray, GenericBinaryArray, OffsetSizeTrait};
 use arrow_schema::DataType;
-use datafusion_common::{internal_err, DataFusionError, internal_datafusion_err};
+use datafusion_common::{internal_datafusion_err, internal_err, DataFusionError};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, Volatility};
 use rayon::prelude::*;
 use std::any::Any;
@@ -109,9 +109,9 @@ fn intersects<O: OffsetSizeTrait, F: OffsetSizeTrait>(
                 use geos::Geom;
                 match (arr0.geos_value(geom_index)?, arr1.geos_value(geom_index)?) {
                     (Some(geom0), Some(geom1)) => {
-                        let result = geom0
-                            .intersects(&geom1)
-                            .map_err(|e| internal_datafusion_err!("Failed to do intersects, error: {}", e))?;
+                        let result = geom0.intersects(&geom1).map_err(|e| {
+                            internal_datafusion_err!("Failed to do intersects, error: {}", e)
+                        })?;
                         Ok(Some(result))
                     }
                     _ => Ok(None),
