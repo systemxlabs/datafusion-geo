@@ -1,8 +1,8 @@
 use crate::geo::GeometryArrayBuilder;
 use arrow_array::cast::AsArray;
 use arrow_schema::DataType;
-use datafusion_common::DataFusionError;
 use datafusion_common::ScalarValue;
+use datafusion_common::{internal_datafusion_err, internal_err, DataFusionError};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, TypeSignature, Volatility};
 use geozero::wkb::WkbDialect;
 use geozero::{GeozeroGeometry, ToWkb};
@@ -50,9 +50,7 @@ impl ScalarUDFImpl for GeomFromTextUdf {
     fn invoke(&self, args: &[ColumnarValue]) -> datafusion_common::Result<ColumnarValue> {
         let srid = if args.len() == 2 {
             let ColumnarValue::Scalar(ScalarValue::Int64(Some(srid))) = &args[1] else {
-                return Err(DataFusionError::Internal(
-                    "The second arg should be int64".to_string(),
-                ));
+                return internal_err!("The second arg should be int64");
             };
             Some(*srid as i32)
         } else {
@@ -68,10 +66,7 @@ impl ScalarUDFImpl for GeomFromTextUdf {
                 Some(data) => {
                     let wkt = geozero::wkt::Wkt(data);
                     let ewkb = wkt.to_ewkb(wkt.dims(), srid).map_err(|e| {
-                        DataFusionError::Internal(format!(
-                            "Failed to convert wkt to ewkb, error: {}",
-                            e
-                        ))
+                        internal_datafusion_err!("Failed to convert wkt to ewkb, error: {}", e)
                     })?;
                     builder.append_wkb(Some(&ewkb))?;
                 }

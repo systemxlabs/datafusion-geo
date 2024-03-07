@@ -2,7 +2,7 @@ use crate::geo::dialect::decode_wkb_dialect;
 use crate::DFResult;
 use arrow_array::types::GenericBinaryType;
 use arrow_array::{Array, GenericByteArray, OffsetSizeTrait};
-use datafusion_common::DataFusionError;
+use datafusion_common::{internal_datafusion_err, DataFusionError};
 use geozero::wkb::FromWkb;
 
 pub trait GeometryArray {
@@ -14,9 +14,8 @@ pub trait GeometryArray {
         if let Some(wkb) = self.wkb(geom_index) {
             let dialect = decode_wkb_dialect(wkb[0])?;
             let mut rdr = std::io::Cursor::new(&wkb[1..]);
-            let value = geo::Geometry::from_wkb(&mut rdr, dialect).map_err(|e| {
-                DataFusionError::Internal(format!("Failed to parse wkb, error: {}", e))
-            })?;
+            let value = geo::Geometry::from_wkb(&mut rdr, dialect)
+                .map_err(|e| internal_datafusion_err!("Failed to parse wkb, error: {}", e))?;
             Ok(Some(value))
         } else {
             Ok(None)
@@ -28,9 +27,8 @@ pub trait GeometryArray {
         if let Some(wkb) = self.wkb(geom_index) {
             let dialect = decode_wkb_dialect(wkb[0])?;
             let mut rdr = std::io::Cursor::new(&wkb[1..]);
-            let value = geos::Geometry::from_wkb(&mut rdr, dialect).map_err(|e| {
-                DataFusionError::Internal(format!("Failed to parse wkb, error: {}", e))
-            })?;
+            let value = geos::Geometry::from_wkb(&mut rdr, dialect)
+                .map_err(|e| internal_datafusion_err!("Failed to parse wkb, error: {}", e))?;
             Ok(Some(value))
         } else {
             Ok(None)

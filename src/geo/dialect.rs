@@ -1,5 +1,5 @@
 use crate::DFResult;
-use datafusion_common::DataFusionError;
+use datafusion_common::{internal_err, DataFusionError};
 use geozero::wkb::WkbDialect;
 
 pub(crate) fn wkb_type_id(dialect: WkbDialect) -> u8 {
@@ -24,9 +24,6 @@ pub(crate) fn decode_wkb_dialect(type_id: u8) -> DFResult<WkbDialect> {
     } else if type_id == wkb_type_id(WkbDialect::SpatiaLite) {
         Ok(WkbDialect::SpatiaLite)
     } else {
-        Err(DataFusionError::Internal(format!(
-            "Cannot decode WkbDialect from {}",
-            type_id
-        )))
+        internal_err!("Cannot decode WkbDialect from {}", type_id)
     }
 }

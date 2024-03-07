@@ -6,7 +6,7 @@ use arrow_schema::DataType;
 use criterion::{criterion_group, criterion_main, Criterion};
 use datafusion::physical_expr::functions::make_scalar_function;
 use datafusion::prelude::SessionContext;
-use datafusion_common::DataFusionError;
+use datafusion_common::{exec_err, DataFusionError};
 use datafusion_expr::{
     create_udf, ReturnTypeFunction, ScalarUDF, Signature, TypeSignature, Volatility,
 };
@@ -104,20 +104,14 @@ fn st_geomfromtext(args: &[ArrayRef]) -> DFResult<Arc<dyn Array>> {
 pub fn intersects() -> ScalarUDF {
     let intersects = |args: &[ArrayRef]| -> datafusion::error::Result<Arc<dyn Array>> {
         if args.len() != 2 {
-            return Err(DataFusionError::Execution(
-                "st_intersects must have only three args.".to_string(),
-            ));
+            return exec_err!("st_intersects must have only three args.");
         }
         let Ok(wkb_array_a) = WKBArray::<i32>::try_from(&args[0] as &dyn Array) else {
-            return Err(DataFusionError::Execution(
-                "st_intersects input 0 can not convert to WKBArray<i32>.".to_string(),
-            ));
+            return exec_err!("st_intersects input 0 can not convert to WKBArray<i32>.");
         };
 
         let Ok(wkb_array_b) = WKBArray::<i32>::try_from(&args[1] as &dyn Array) else {
-            return Err(DataFusionError::Execution(
-                "st_intersects input 1 can not convert to WKBArray<i32>.".to_string(),
-            ));
+            return exec_err!("st_intersects input 1 can not convert to WKBArray<i32>.");
         };
         let result: BooleanArray = wkb_array_a
             .iter_geo()

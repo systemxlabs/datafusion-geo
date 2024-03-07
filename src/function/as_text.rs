@@ -3,7 +3,7 @@ use crate::DFResult;
 use arrow_array::cast::AsArray;
 use arrow_array::{GenericBinaryArray, LargeStringArray, OffsetSizeTrait, StringArray};
 use arrow_schema::DataType;
-use datafusion_common::DataFusionError;
+use datafusion_common::{internal_datafusion_err, DataFusionError};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, TypeSignature, Volatility};
 use geozero::ToWkt;
 use std::any::Any;
@@ -100,9 +100,10 @@ fn to_wkt<O: OffsetSizeTrait>(
         }
     };
     let wkt = match geom {
-        Some(geom) => Some(geom.to_wkt().map_err(|_| {
-            DataFusionError::Internal("Failed to convert geometry to wkt".to_string())
-        })?),
+        Some(geom) => Some(
+            geom.to_wkt()
+                .map_err(|_| internal_datafusion_err!("Failed to convert geometry to wkt"))?,
+        ),
         None => None,
     };
     Ok(wkt)

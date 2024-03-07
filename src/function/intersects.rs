@@ -3,7 +3,7 @@ use crate::DFResult;
 use arrow_array::cast::AsArray;
 use arrow_array::{Array, BooleanArray, GenericBinaryArray, OffsetSizeTrait};
 use arrow_schema::DataType;
-use datafusion_common::DataFusionError;
+use datafusion_common::{internal_err, DataFusionError};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, Volatility};
 use rayon::prelude::*;
 use std::any::Any;
@@ -59,9 +59,7 @@ impl ScalarUDFImpl for IntersectsUdf {
             }
         };
         if arr0.len() != arr1.len() {
-            return Err(DataFusionError::Internal(
-                "Two arrays length is not same".to_string(),
-            ));
+            return internal_err!("Two arrays length is not same");
         }
         match (arr0.data_type(), arr1.data_type()) {
             (DataType::Binary, DataType::Binary) => {
@@ -111,12 +109,9 @@ fn intersects<O: OffsetSizeTrait, F: OffsetSizeTrait>(
                 use geos::Geom;
                 match (arr0.geos_value(geom_index)?, arr1.geos_value(geom_index)?) {
                     (Some(geom0), Some(geom1)) => {
-                        let result = geom0.intersects(&geom1).map_err(|e| {
-                            DataFusionError::Internal(format!(
-                                "Failed to do intersects, error: {}",
-                                e
-                            ))
-                        })?;
+                        let result = geom0
+                            .intersects(&geom1)
+                            .map_err(|e| internal_err!("Failed to do intersects, error: {}", e))?;
                         Ok(Some(result))
                     }
                     _ => Ok(None),

@@ -4,7 +4,7 @@ use arrow_array::builder::UInt8BufferBuilder;
 use arrow_array::types::GenericBinaryType;
 use arrow_array::{GenericByteArray, OffsetSizeTrait};
 use arrow_buffer::{BufferBuilder, NullBufferBuilder, OffsetBuffer};
-use datafusion_common::DataFusionError;
+use datafusion_common::{internal_datafusion_err, DataFusionError};
 use geozero::wkb::{FromWkb, WkbDialect};
 use geozero::{GeozeroGeometry, ToWkb};
 
@@ -44,9 +44,7 @@ impl<O: OffsetSizeTrait> GeometryArrayBuilder<O> {
         if let Some(geom) = geom {
             let wkb = geom
                 .to_wkb_dialect(self.dialect, geom.dims(), geom.srid(), vec![])
-                .map_err(|e| {
-                    DataFusionError::Internal(format!("Failed to convert to wkb, error: {}", e))
-                })?;
+                .map_err(|e| internal_datafusion_err!("Failed to convert to wkb, error: {}", e))?;
             self.internal_append_wkb(&wkb);
         } else {
             self.append_null();
@@ -60,9 +58,7 @@ impl<O: OffsetSizeTrait> GeometryArrayBuilder<O> {
         if let Some(geom) = geom {
             let wkb = geom
                 .to_wkb_dialect(self.dialect, geom.dims(), geom.srid(), vec![])
-                .map_err(|e| {
-                    DataFusionError::Internal(format!("Failed to convert to wkb, error: {}", e))
-                })?;
+                .map_err(|e| internal_datafusion_err!("Failed to convert to wkb, error: {}", e))?;
             self.internal_append_wkb(&wkb);
         } else {
             self.append_null();
@@ -103,12 +99,12 @@ fn check_wkb(wkb: &[u8], dialect: WkbDialect) -> DFResult<()> {
     #[cfg(feature = "geos")]
     {
         let _ = geos::Geometry::from_wkb(&mut rdr, dialect)
-            .map_err(|e| DataFusionError::Internal(format!("Failed to parse wkb, error: {}", e)))?;
+            .map_err(|e| internal_datafusion_err!("Failed to parse wkb, error: {}", e))?;
     }
     #[cfg(not(feature = "geos"))]
     {
         let _ = geo::Geometry::from_wkb(&mut rdr, dialect)
-            .map_err(|e| DataFusionError::Internal(format!("Failed to parse wkb, error: {}", e)))?;
+            .map_err(|e| internal_datafusion_err!("Failed to parse wkb, error: {}", e))?;
     }
     Ok(())
 }

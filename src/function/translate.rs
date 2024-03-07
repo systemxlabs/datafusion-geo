@@ -1,7 +1,7 @@
 use crate::geo::{GeometryArray, GeometryArrayBuilder};
 use arrow_array::cast::AsArray;
 use arrow_schema::DataType;
-use datafusion_common::{DataFusionError, ScalarValue};
+use datafusion_common::{internal_err, DataFusionError, ScalarValue};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, TypeSignature, Volatility};
 use geo::Translate;
 use std::any::Any;
@@ -55,14 +55,10 @@ impl ScalarUDFImpl for TranslateUdf {
 
     fn invoke(&self, args: &[ColumnarValue]) -> datafusion_common::Result<ColumnarValue> {
         let ColumnarValue::Scalar(ScalarValue::Float64(Some(x_offset))) = args[1] else {
-            return Err(DataFusionError::Internal(
-                "The second arg should be f64 scalar".to_string(),
-            ));
+            return internal_err!("The second arg should be f64 scalar");
         };
         let ColumnarValue::Scalar(ScalarValue::Float64(Some(y_offset))) = args[2] else {
-            return Err(DataFusionError::Internal(
-                "The third arg should be f64 scalar".to_string(),
-            ));
+            return internal_err!("The third arg should be f64 scalar");
         };
 
         match args[0].data_type() {

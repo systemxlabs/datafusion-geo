@@ -1,6 +1,6 @@
 use crate::geo::GeometryArrayBuilder;
 use arrow_schema::DataType;
-use datafusion_common::{DataFusionError, ScalarValue};
+use datafusion_common::{internal_datafusion_err, internal_err, DataFusionError, ScalarValue};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, TypeSignature, Volatility};
 use geos::CoordSeq;
 use geozero::wkb::WkbDialect;
@@ -57,9 +57,7 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
     }
 
     fn invoke(&self, args: &[ColumnarValue]) -> datafusion_common::Result<ColumnarValue> {
-        let error = Err(DataFusionError::Internal(
-            "The arg should be float64".to_string(),
-        ));
+        let error = internal_err!("The arg should be float64");
         let ColumnarValue::Scalar(ScalarValue::Float64(Some(xmin))) = args[0] else {
             return error;
         };
@@ -74,9 +72,7 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
         };
         let srid = if args.len() == 5 {
             let ColumnarValue::Scalar(ScalarValue::Int64(Some(srid))) = args[4] else {
-                return Err(DataFusionError::Internal(
-                    "The fifth arg should be int64".to_string(),
-                ));
+                return internal_err!("The fifth arg should be int64");
             };
             Some(srid)
         } else {
@@ -90,11 +86,11 @@ impl ScalarUDFImpl for MakeEnvelopeUdf {
             &[xmax, ymin],
             &[xmin, ymin],
         ])
-        .map_err(|_| DataFusionError::Internal("Failed to create coord req".to_string()))?;
+        .map_err(|_| internal_datafusion_err!("Failed to create coord req"))?;
         let exterior = geos::Geometry::create_linear_ring(coords)
-            .map_err(|_| DataFusionError::Internal("Failed to create exterior".to_string()))?;
+            .map_err(|_| internal_datafusion_err!("Failed to create exterior"))?;
         let mut polygon = geos::Geometry::create_polygon(exterior, vec![])
-            .map_err(|_| DataFusionError::Internal("Failed to create polygon".to_string()))?;
+            .map_err(|_| internal_datafusion_err!("Failed to create polygon"))?;
 
         let mut builder = if let Some(srid) = srid {
             polygon.set_srid(srid as usize);

@@ -211,7 +211,7 @@ mod tests {
             .unwrap();
         ctx.register_udaf(AggregateUDF::from(ExtentUdaf::new()));
         let df = ctx
-            .sql("select ST_Extent(geom), name from geom_table group by name")
+            .sql("select ST_Extent(geom), name from geom_table group by name order by name")
             .await
             .unwrap();
         assert_eq!(
@@ -221,8 +221,8 @@ mod tests {
             "+----------------------------------------------+------+
 | st_extent(geom_table.geom)                   | name |
 +----------------------------------------------+------+
-| {xmin: 2.0, ymin: 3.0, xmax: 7.0, ymax: 8.0} | b    |
 | {xmin: 0.0, ymin: 1.0, xmax: 5.0, ymax: 6.0} | a    |
+| {xmin: 2.0, ymin: 3.0, xmax: 7.0, ymax: 8.0} | b    |
 +----------------------------------------------+------+"
         );
     }

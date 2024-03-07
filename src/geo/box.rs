@@ -4,7 +4,7 @@ use arrow_array::types::Float64Type;
 use arrow_array::{Array, Float64Array, StructArray};
 use arrow_buffer::NullBuffer;
 use arrow_schema::{DataType, Field};
-use datafusion_common::{DataFusionError, ScalarValue};
+use datafusion_common::{internal_err, DataFusionError, ScalarValue};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -30,9 +30,7 @@ impl Box2d {
 
     pub fn value(arr: &StructArray, index: usize) -> DFResult<Option<Box2d>> {
         if arr.data_type() != &Box2d::data_type() {
-            return Err(DataFusionError::Internal(
-                "StructArray data type is not matched".to_string(),
-            ));
+            return internal_err!("StructArray data type is not matched");
         }
         if index >= arr.len() || arr.is_null(index) {
             return Ok(None);
@@ -49,9 +47,7 @@ impl TryFrom<&ScalarValue> for Box2d {
     fn try_from(value: &ScalarValue) -> Result<Self, Self::Error> {
         if let ScalarValue::Struct(arr) = value {
             if arr.data_type() != &Box2d::data_type() {
-                return Err(DataFusionError::Internal(
-                    "ScalarValue data type is not matched".to_string(),
-                ));
+                return internal_err!("ScalarValue data type is not matched");
             }
             let xmin = arr.column(0).as_primitive::<Float64Type>().value(0);
             let ymin = arr.column(1).as_primitive::<Float64Type>().value(0);
@@ -64,9 +60,7 @@ impl TryFrom<&ScalarValue> for Box2d {
                 ymax,
             })
         } else {
-            Err(DataFusionError::Internal(
-                "ScalarValue is not struct".to_string(),
-            ))
+            internal_err!("ScalarValue is not struct")
         }
     }
 }
