@@ -8,7 +8,6 @@ Add geo functionality extension to datafusion query engine.
 **Goals**
 1. Support multiple wkb dialects
 2. Provide DataFusion user defined functions similar with PostGIS
-3. Prefer using geos library if possible
 
 P.S. Please see each function unit test to know how to use them.
 

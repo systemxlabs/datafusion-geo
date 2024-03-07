@@ -8,14 +8,14 @@ use datafusion_common::{DataFusionError, ScalarValue};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub struct Box2D {
+pub struct Box2d {
     pub(crate) xmin: f64,
     pub(crate) ymin: f64,
     pub(crate) xmax: f64,
     pub(crate) ymax: f64,
 }
 
-impl Box2D {
+impl Box2d {
     pub fn fields() -> Vec<Field> {
         vec![
             Field::new("xmin", DataType::Float64, false),
@@ -28,8 +28,8 @@ impl Box2D {
         DataType::Struct(Self::fields().into())
     }
 
-    pub fn value(arr: &StructArray, index: usize) -> DFResult<Option<Box2D>> {
-        if arr.data_type() != &Box2D::data_type() {
+    pub fn value(arr: &StructArray, index: usize) -> DFResult<Option<Box2d>> {
+        if arr.data_type() != &Box2d::data_type() {
             return Err(DataFusionError::Internal(
                 "StructArray data type is not matched".to_string(),
             ));
@@ -38,17 +38,17 @@ impl Box2D {
             return Ok(None);
         }
         let scalar = ScalarValue::Struct(Arc::new(arr.slice(index, 1)));
-        let box2d: Box2D = (&scalar).try_into()?;
+        let box2d: Box2d = (&scalar).try_into()?;
         Ok(Some(box2d))
     }
 }
 
-impl TryFrom<&ScalarValue> for Box2D {
+impl TryFrom<&ScalarValue> for Box2d {
     type Error = DataFusionError;
 
     fn try_from(value: &ScalarValue) -> Result<Self, Self::Error> {
         if let ScalarValue::Struct(arr) = value {
-            if arr.data_type() != &Box2D::data_type() {
+            if arr.data_type() != &Box2d::data_type() {
                 return Err(DataFusionError::Internal(
                     "ScalarValue data type is not matched".to_string(),
                 ));
@@ -57,7 +57,7 @@ impl TryFrom<&ScalarValue> for Box2D {
             let ymin = arr.column(1).as_primitive::<Float64Type>().value(0);
             let xmax = arr.column(2).as_primitive::<Float64Type>().value(0);
             let ymax = arr.column(3).as_primitive::<Float64Type>().value(0);
-            Ok(Box2D {
+            Ok(Box2d {
                 xmin,
                 ymin,
                 xmax,
@@ -71,7 +71,14 @@ impl TryFrom<&ScalarValue> for Box2D {
     }
 }
 
-impl From<geo::Rect> for Box2D {
+impl From<Box2d> for ScalarValue {
+    fn from(value: Box2d) -> Self {
+        let arr = build_box2d_array(vec![Some(value)]);
+        ScalarValue::Struct(Arc::new(arr))
+    }
+}
+
+impl From<geo::Rect> for Box2d {
     fn from(value: geo::Rect) -> Self {
         Self {
             xmin: value.min().x,
@@ -82,7 +89,7 @@ impl From<geo::Rect> for Box2D {
     }
 }
 
-pub fn build_box2d_array(data: Vec<Option<Box2D>>) -> StructArray {
+pub fn build_box2d_array(data: Vec<Option<Box2d>>) -> StructArray {
     let xmin_arr = Arc::new(Float64Array::from(
         data.iter()
             .map(|b| b.clone().map(|b| b.xmin))
@@ -105,7 +112,7 @@ pub fn build_box2d_array(data: Vec<Option<Box2D>>) -> StructArray {
     ));
     let nulls: NullBuffer = data.iter().map(|b| b.is_some()).collect::<Vec<_>>().into();
     StructArray::try_new(
-        Box2D::fields().into(),
+        Box2d::fields().into(),
         vec![xmin_arr, ymin_arr, xmax_arr, ymax_arr],
         Some(nulls),
     )
@@ -114,18 +121,18 @@ pub fn build_box2d_array(data: Vec<Option<Box2D>>) -> StructArray {
 
 #[cfg(test)]
 mod tests {
-    use crate::geo::r#box::{build_box2d_array, Box2D};
+    use crate::geo::r#box::{build_box2d_array, Box2d};
     use arrow_array::{Array, StructArray};
 
     #[test]
     fn box2d_array() {
-        let box2d0 = Box2D {
+        let box2d0 = Box2d {
             xmin: 1.0,
             ymin: 2.0,
             xmax: 3.0,
             ymax: 4.0,
         };
-        let box2d2 = Box2D {
+        let box2d2 = Box2d {
             xmin: 5.0,
             ymin: 6.0,
             xmax: 7.0,
@@ -136,14 +143,14 @@ mod tests {
         assert_eq!(arr.len(), 3);
 
         assert_eq!(
-            format!("{:?}", Box2D::value(&arr, 0).unwrap()),
-            "Some(Box2D { xmin: 1.0, ymin: 2.0, xmax: 3.0, ymax: 4.0 })"
+            format!("{:?}", Box2d::value(&arr, 0).unwrap()),
+            "Some(Box2d { xmin: 1.0, ymin: 2.0, xmax: 3.0, ymax: 4.0 })"
         );
-        assert_eq!(format!("{:?}", Box2D::value(&arr, 1).unwrap()), "None");
+        assert_eq!(format!("{:?}", Box2d::value(&arr, 1).unwrap()), "None");
         assert_eq!(
-            format!("{:?}", Box2D::value(&arr, 2).unwrap()),
-            "Some(Box2D { xmin: 5.0, ymin: 6.0, xmax: 7.0, ymax: 8.0 })"
+            format!("{:?}", Box2d::value(&arr, 2).unwrap()),
+            "Some(Box2d { xmin: 5.0, ymin: 6.0, xmax: 7.0, ymax: 8.0 })"
         );
-        assert_eq!(format!("{:?}", Box2D::value(&arr, 3).unwrap()), "None");
+        assert_eq!(format!("{:?}", Box2d::value(&arr, 3).unwrap()), "None");
     }
 }

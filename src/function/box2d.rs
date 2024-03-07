@@ -1,4 +1,4 @@
-use crate::geo::{build_box2d_array, Box2D, GeometryArray};
+use crate::geo::{build_box2d_array, Box2d, GeometryArray};
 use arrow_array::cast::AsArray;
 use arrow_array::Array;
 use arrow_schema::DataType;
@@ -40,7 +40,7 @@ impl ScalarUDFImpl for Box2dUdf {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> datafusion_common::Result<DataType> {
-        Ok(Box2D::data_type())
+        Ok(Box2d::data_type())
     }
 
     fn invoke(&self, args: &[ColumnarValue]) -> datafusion_common::Result<ColumnarValue> {
@@ -48,12 +48,12 @@ impl ScalarUDFImpl for Box2dUdf {
         match arr.data_type() {
             DataType::Binary => {
                 let wkb_arr = arr.as_binary::<i32>();
-                let mut box2d_vec: Vec<Option<Box2D>> = vec![];
+                let mut box2d_vec: Vec<Option<Box2d>> = vec![];
                 for i in 0..wkb_arr.geom_len() {
                     box2d_vec.push(
                         wkb_arr
                             .geo_value(i)?
-                            .and_then(|geom| geom.bounding_rect().map(Box2D::from)),
+                            .and_then(|geom| geom.bounding_rect().map(Box2d::from)),
                     );
                 }
                 let arr = build_box2d_array(box2d_vec);
@@ -61,12 +61,12 @@ impl ScalarUDFImpl for Box2dUdf {
             }
             DataType::LargeBinary => {
                 let wkb_arr = arr.as_binary::<i64>();
-                let mut box2d_vec: Vec<Option<Box2D>> = vec![];
+                let mut box2d_vec: Vec<Option<Box2d>> = vec![];
                 for i in 0..wkb_arr.geom_len() {
                     box2d_vec.push(
                         wkb_arr
                             .geo_value(i)?
-                            .and_then(|geom| geom.bounding_rect().map(Box2D::from)),
+                            .and_then(|geom| geom.bounding_rect().map(Box2d::from)),
                     );
                 }
                 let arr = build_box2d_array(box2d_vec);

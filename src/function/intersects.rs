@@ -103,7 +103,7 @@ fn intersects<O: OffsetSizeTrait, F: OffsetSizeTrait>(
     arr0: &GenericBinaryArray<O>,
     arr1: &GenericBinaryArray<F>,
 ) -> DFResult<ColumnarValue> {
-    let bool_vec = (0..arr0.len())
+    let bool_vec = (0..arr0.geom_len())
         .into_par_iter()
         .map(|geom_index| {
             #[cfg(feature = "geos")]
