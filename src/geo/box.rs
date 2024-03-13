@@ -98,7 +98,7 @@ impl From<geo::Rect> for Box2d {
 }
 
 #[cfg(feature = "geos")]
-impl TryFrom<geos::Geometry> for Box2d {
+impl TryFrom<geos::Geometry<'_>> for Box2d {
     type Error = DataFusionError;
 
     fn try_from(value: geos::Geometry) -> Result<Self, Self::Error> {
@@ -106,16 +106,16 @@ impl TryFrom<geos::Geometry> for Box2d {
         use geos::Geom;
         let xmin = value
             .get_x_min()
-            .map_err(internal_datafusion_err!("geom get_x_min failed"))?;
+            .map_err(|_| internal_datafusion_err!("geom get_x_min failed"))?;
         let ymin = value
             .get_y_min()
-            .map_err(internal_datafusion_err!("geom get_y_min failed"))?;
+            .map_err(|_| internal_datafusion_err!("geom get_y_min failed"))?;
         let xmax = value
             .get_x_max()
-            .map_err(internal_datafusion_err!("geom get_x_max failed"))?;
+            .map_err(|_| internal_datafusion_err!("geom get_x_max failed"))?;
         let ymax = value
             .get_y_max()
-            .map_err(internal_datafusion_err!("geom get_y_max failed"))?;
+            .map_err(|_| internal_datafusion_err!("geom get_y_max failed"))?;
         Ok(Box2d {
             xmin,
             ymin,
