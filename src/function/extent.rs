@@ -8,6 +8,7 @@ use datafusion_expr::{Accumulator, AggregateUDFImpl, Signature, Volatility};
 use geo::BoundingRect;
 use std::any::Any;
 
+// TODO add aliases after datafusion 37.0 released
 #[derive(Debug)]
 pub struct ExtentUdaf {
     signature: Signature,
@@ -66,12 +67,7 @@ pub struct ExtentAccumulator {
 impl ExtentAccumulator {
     pub fn new() -> Self {
         Self {
-            box2d: Box2d {
-                xmin: f64::MAX,
-                ymin: f64::MAX,
-                xmax: f64::MIN,
-                ymax: f64::MIN,
-            },
+            box2d: Box2d::new(),
         }
     }
 }
@@ -133,12 +129,7 @@ impl Accumulator for ExtentAccumulator {
 }
 
 fn compute_extent<O: OffsetSizeTrait>(arr: &GenericBinaryArray<O>) -> DFResult<Box2d> {
-    let mut box2d = Box2d {
-        xmin: f64::MAX,
-        ymin: f64::MAX,
-        xmax: f64::MIN,
-        ymax: f64::MIN,
-    };
+    let mut box2d = Box2d::new();
     for i in 0..arr.geom_len() {
         if let Some(value) = arr
             .geo_value(i)?

@@ -16,6 +16,14 @@ pub struct Box2d {
 }
 
 impl Box2d {
+    pub fn new() -> Self {
+        Self {
+            xmin: f64::MAX,
+            ymin: f64::MAX,
+            xmax: f64::MIN,
+            ymax: f64::MIN,
+        }
+    }
     pub fn fields() -> Vec<Field> {
         vec![
             Field::new("xmin", DataType::Float64, false),
@@ -38,6 +46,12 @@ impl Box2d {
         let scalar = ScalarValue::Struct(Arc::new(arr.slice(index, 1)));
         let box2d: Box2d = (&scalar).try_into()?;
         Ok(Some(box2d))
+    }
+}
+
+impl Default for Box2d {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -80,6 +94,34 @@ impl From<geo::Rect> for Box2d {
             xmax: value.max().x,
             ymax: value.max().y,
         }
+    }
+}
+
+#[cfg(feature = "geos")]
+impl TryFrom<geos::Geometry> for Box2d {
+    type Error = DataFusionError;
+
+    fn try_from(value: geos::Geometry) -> Result<Self, Self::Error> {
+        use datafusion_common::internal_datafusion_err;
+        use geos::Geom;
+        let xmin = value
+            .get_x_min()
+            .map_err(internal_datafusion_err!("geom get_x_min failed"))?;
+        let ymin = value
+            .get_y_min()
+            .map_err(internal_datafusion_err!("geom get_y_min failed"))?;
+        let xmax = value
+            .get_x_max()
+            .map_err(internal_datafusion_err!("geom get_x_max failed"))?;
+        let ymax = value
+            .get_y_max()
+            .map_err(internal_datafusion_err!("geom get_y_max failed"))?;
+        Ok(Box2d {
+            xmin,
+            ymin,
+            xmax,
+            ymax,
+        })
     }
 }
 
