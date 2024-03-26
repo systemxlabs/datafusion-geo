@@ -6,6 +6,8 @@ mod box2d;
 mod covered_by;
 #[cfg(feature = "geos")]
 mod covers;
+#[cfg(feature = "geos")]
+mod equals;
 mod extent;
 mod geom_from_text;
 mod geom_from_wkb;
@@ -24,6 +26,8 @@ pub use as_text::*;
 pub use covered_by::*;
 #[cfg(feature = "geos")]
 pub use covers::*;
+#[cfg(feature = "geos")]
+pub use equals::*;
 pub use geom_from_text::*;
 pub use geometry_type::*;
 pub use intersects::*;

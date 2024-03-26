@@ -12,12 +12,12 @@ use std::any::Any;
 use std::sync::Arc;
 
 #[derive(Debug)]
-pub struct CoversUdf {
+pub struct EqualsUdf {
     signature: Signature,
     aliases: Vec<String>,
 }
 
-impl CoversUdf {
+impl EqualsUdf {
     pub fn new() -> Self {
         Self {
             signature: Signature::uniform(
@@ -25,18 +25,18 @@ impl CoversUdf {
                 vec![DataType::Binary, DataType::LargeBinary],
                 Volatility::Immutable,
             ),
-            aliases: vec!["st_covers".to_string()],
+            aliases: vec!["st_equals".to_string()],
         }
     }
 }
 
-impl ScalarUDFImpl for CoversUdf {
+impl ScalarUDFImpl for EqualsUdf {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
     fn name(&self) -> &str {
-        "ST_Covers"
+        "ST_Equals"
     }
 
     fn signature(&self) -> &Signature {
@@ -68,35 +68,35 @@ impl ScalarUDFImpl for CoversUdf {
             (DataType::Binary, DataType::Binary) => {
                 let arr0 = arr0.as_binary::<i32>();
                 let arr1 = arr1.as_binary::<i32>();
-                covers::<i32, i32>(arr0, arr1)
+                equals::<i32, i32>(arr0, arr1)
             }
             (DataType::LargeBinary, DataType::Binary) => {
                 let arr0 = arr0.as_binary::<i64>();
                 let arr1 = arr1.as_binary::<i32>();
-                covers::<i64, i32>(arr0, arr1)
+                equals::<i64, i32>(arr0, arr1)
             }
             (DataType::Binary, DataType::LargeBinary) => {
                 let arr0 = arr0.as_binary::<i32>();
                 let arr1 = arr1.as_binary::<i64>();
-                covers::<i32, i64>(arr0, arr1)
+                equals::<i32, i64>(arr0, arr1)
             }
             (DataType::LargeBinary, DataType::LargeBinary) => {
                 let arr0 = arr0.as_binary::<i64>();
                 let arr1 = arr1.as_binary::<i64>();
-                covers::<i64, i64>(arr0, arr1)
+                equals::<i64, i64>(arr0, arr1)
             }
             _ => unreachable!(),
         }
     }
 }
 
-impl Default for CoversUdf {
+impl Default for EqualsUdf {
     fn default() -> Self {
         Self::new()
     }
 }
 
-fn covers<O: OffsetSizeTrait, F: OffsetSizeTrait>(
+fn equals<O: OffsetSizeTrait, F: OffsetSizeTrait>(
     arr0: &GenericBinaryArray<O>,
     arr1: &GenericBinaryArray<F>,
 ) -> DFResult<ColumnarValue> {
@@ -105,8 +105,8 @@ fn covers<O: OffsetSizeTrait, F: OffsetSizeTrait>(
         .map(
             |geom_index| match (arr0.geos_value(geom_index)?, arr1.geos_value(geom_index)?) {
                 (Some(geom0), Some(geom1)) => {
-                    let result = geom0.covers(&geom1).map_err(|e| {
-                        internal_datafusion_err!("Failed to do covers, error: {}", e)
+                    let result = geom0.equals(&geom1).map_err(|e| {
+                        internal_datafusion_err!("Failed to do equals, error: {}", e)
                     })?;
                     Ok(Some(result))
                 }
@@ -119,18 +119,18 @@ fn covers<O: OffsetSizeTrait, F: OffsetSizeTrait>(
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{CoversUdf, GeomFromTextUdf};
+    use crate::function::{EqualsUdf, GeomFromTextUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::prelude::SessionContext;
     use datafusion_expr::ScalarUDF;
 
     #[tokio::test]
-    async fn covers() {
+    async fn equals() {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
-        ctx.register_udf(ScalarUDF::from(CoversUdf::new()));
+        ctx.register_udf(ScalarUDF::from(EqualsUdf::new()));
         let df = ctx
-            .sql("select ST_Covers(ST_GeomFromText('LINESTRING ( 1 1, 0 2 )'), ST_GeomFromText('POINT(1 1)'))")
+            .sql("SELECT ST_Equals(ST_GeomFromText('LINESTRING(0 0, 10 10)'), ST_GeomFromText('LINESTRING(0 0, 5 5, 10 10)'))")
             .await
             .unwrap();
         assert_eq!(

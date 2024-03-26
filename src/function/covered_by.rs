@@ -6,7 +6,7 @@ use arrow_schema::DataType;
 use datafusion_common::{internal_datafusion_err, internal_err, DataFusionError};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, Volatility};
 use geos::Geom;
-use rayon::iter::IntoParallelIterator;
+use rayon::prelude::*;
 use std::any::Any;
 use std::sync::Arc;
 
