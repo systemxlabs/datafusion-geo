@@ -88,6 +88,10 @@ impl ScalarUDFImpl for CoversUdf {
             _ => unreachable!(),
         }
     }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
 }
 
 impl Default for CoversUdf {
@@ -137,7 +141,11 @@ mod tests {
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+-------------------------------------------------------------------------------------------------+
+| ST_Covers(ST_GeomFromText(Utf8(\"LINESTRING ( 1 1, 0 2 )\")),ST_GeomFromText(Utf8(\"POINT(1 1)\"))) |
++-------------------------------------------------------------------------------------------------+
+| true                                                                                            |
++-------------------------------------------------------------------------------------------------+"
         );
     }
 }

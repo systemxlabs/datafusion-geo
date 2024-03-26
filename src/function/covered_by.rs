@@ -87,6 +87,10 @@ impl ScalarUDFImpl for CoveredByUdf {
             _ => unreachable!(),
         }
     }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
 }
 
 impl Default for CoveredByUdf {
@@ -129,14 +133,18 @@ mod tests {
         ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
         ctx.register_udf(ScalarUDF::from(CoveredByUdf::new()));
         let df = ctx
-            .sql("select ST_CoveredBy(ST_GeomFromText('LINESTRING ( 1 1, 0 2 )'), ST_GeomFromText('POINT(1 1)'))")
+            .sql("select ST_CoveredBy(ST_GeomFromText('POINT(1 1)'), ST_GeomFromText('LINESTRING ( 1 1, 0 2 )'))")
             .await
             .unwrap();
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+----------------------------------------------------------------------------------------------------+
+| ST_CoveredBy(ST_GeomFromText(Utf8(\"POINT(1 1)\")),ST_GeomFromText(Utf8(\"LINESTRING ( 1 1, 0 2 )\"))) |
++----------------------------------------------------------------------------------------------------+
+| true                                                                                               |
++----------------------------------------------------------------------------------------------------+"
         );
     }
 }

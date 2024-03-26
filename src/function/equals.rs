@@ -88,6 +88,10 @@ impl ScalarUDFImpl for EqualsUdf {
             _ => unreachable!(),
         }
     }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
 }
 
 impl Default for EqualsUdf {
@@ -137,7 +141,11 @@ mod tests {
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+-----------------------------------------------------------------------------------------------------------------+
+| ST_Equals(ST_GeomFromText(Utf8(\"LINESTRING(0 0, 10 10)\")),ST_GeomFromText(Utf8(\"LINESTRING(0 0, 5 5, 10 10)\"))) |
++-----------------------------------------------------------------------------------------------------------------+
+| true                                                                                                            |
++-----------------------------------------------------------------------------------------------------------------+"
         );
     }
 }
