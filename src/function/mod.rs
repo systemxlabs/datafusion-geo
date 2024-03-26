@@ -3,6 +3,8 @@ mod as_ewkt;
 mod as_text;
 mod box2d;
 #[cfg(feature = "geos")]
+mod covered_by;
+#[cfg(feature = "geos")]
 mod covers;
 mod extent;
 mod geom_from_text;
@@ -18,6 +20,8 @@ mod translate;
 #[cfg(feature = "geos")]
 pub use as_ewkt::*;
 pub use as_text::*;
+#[cfg(feature = "geos")]
+pub use covered_by::*;
 #[cfg(feature = "geos")]
 pub use covers::*;
 pub use geom_from_text::*;
