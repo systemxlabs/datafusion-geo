@@ -1,12 +1,13 @@
 use crate::geo::{GeometryArray, GeometryArrayBuilder};
 use crate::DFResult;
 use arrow_array::cast::AsArray;
-use arrow_array::{BooleanArray, GenericBinaryArray, OffsetSizeTrait};
+use arrow_array::{GenericBinaryArray, OffsetSizeTrait};
 use arrow_schema::DataType;
-use datafusion_common::{internal_datafusion_err, internal_err};
+use datafusion_common::{internal_datafusion_err, internal_err, DataFusionError};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, Volatility};
 use geos::Geom;
 use rayon::iter::IntoParallelIterator;
+use rayon::prelude::*;
 use std::any::Any;
 use std::sync::Arc;
 
@@ -124,7 +125,7 @@ fn split<O: OffsetSizeTrait, F: OffsetSizeTrait>(
             },
         )
         .collect::<DFResult<Vec<Option<geos::Geometry>>>>()?;
-    let builder = GeometryArrayBuilder::<O>::from(&geom_vec);
+    let builder = GeometryArrayBuilder::<O>::from(geom_vec.as_slice());
     Ok(ColumnarValue::Array(Arc::new(builder.build())))
 }
 

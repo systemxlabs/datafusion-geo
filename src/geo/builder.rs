@@ -192,7 +192,7 @@ impl<O: OffsetSizeTrait> From<&[Option<geo::GeometryCollection>]> for GeometryAr
 }
 
 #[cfg(feature = "geos")]
-impl<O: OffsetSizeTrait> From<&[Option<geos::Geometry>]> for GeometryArrayBuilder<O> {
+impl<O: OffsetSizeTrait> From<&[Option<geos::Geometry<'_>>]> for GeometryArrayBuilder<O> {
     fn from(value: &[Option<geos::Geometry>]) -> Self {
         let mut builder = GeometryArrayBuilder::<O>::new(WkbDialect::Ewkb, value.len());
         for geom in value {
