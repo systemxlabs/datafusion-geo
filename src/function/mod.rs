@@ -16,6 +16,8 @@ mod intersects;
 #[cfg(feature = "geos")]
 mod make_envelope;
 #[cfg(feature = "geos")]
+mod split;
+#[cfg(feature = "geos")]
 mod srid;
 mod translate;
 
@@ -33,6 +35,8 @@ pub use geometry_type::*;
 pub use intersects::*;
 #[cfg(feature = "geos")]
 pub use make_envelope::*;
+#[cfg(feature = "geos")]
+pub use split::*;
 #[cfg(feature = "geos")]
 pub use srid::*;
 pub use translate::*;
