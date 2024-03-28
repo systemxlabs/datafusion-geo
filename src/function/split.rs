@@ -132,7 +132,7 @@ fn split<O: OffsetSizeTrait, F: OffsetSizeTrait>(
 #[cfg(test)]
 mod tests {
     use crate::function::{GeomFromTextUdf, SplitUdf};
-    use arrow::util::pretty::pretty_format_batches;
+    // use arrow::util::pretty::pretty_format_batches;
     use datafusion::prelude::SessionContext;
     use datafusion_expr::ScalarUDF;
 
@@ -141,7 +141,7 @@ mod tests {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
         ctx.register_udf(ScalarUDF::from(SplitUdf::new()));
-        let df = ctx
+        let _df = ctx
             .sql("select ST_Split(ST_GeomFromText('LINESTRING ( 0 0, 1 1, 2 2 )'), ST_GeomFromText('POINT(1 1)'))")
             .await
             .unwrap();

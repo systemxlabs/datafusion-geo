@@ -1,10 +1,9 @@
-use crate::function::AsGeoJsonUdf;
 use crate::geo::{GeometryArray, GeometryArrayBuilder};
 use crate::DFResult;
 use arrow_array::cast::AsArray;
 use arrow_array::{GenericBinaryArray, OffsetSizeTrait};
 use arrow_schema::DataType;
-use datafusion_common::internal_datafusion_err;
+use datafusion_common::{internal_datafusion_err, DataFusionError};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, TypeSignature, Volatility};
 use geos::Geom;
 use geozero::wkb::WkbDialect;
@@ -74,10 +73,14 @@ fn build_boundary_arr<O: OffsetSizeTrait>(
 ) -> DFResult<ColumnarValue> {
     let mut builder = GeometryArrayBuilder::<O>::new(WkbDialect::Ewkb, wkb_arr.geom_len());
     for i in 0..wkb_arr.geom_len() {
-        builder.append_geos_geometry(&wkb_arr.geos_value(i)?.map(|geom| {
-            geom.boundary()
-                .map_err(|e| internal_datafusion_err!("Failed to call boundary, e: {}", e))?
-        }))?;
+        if let Some(geom) = wkb_arr.geos_value(i)? {
+            builder
+                .append_geos_geometry(&Some(geom.boundary().map_err(|e| {
+                    internal_datafusion_err!("Failed to call boundary, e: {}", e)
+                })?))?;
+        } else {
+            builder.append_null();
+        }
     }
 
     Ok(ColumnarValue::Array(Arc::new(builder.build())))
@@ -91,7 +94,7 @@ impl Default for BoundaryUdf {
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{BoundaryUdf, GeomFromTextUdf};
+    use crate::function::{AsTextUdf, BoundaryUdf, GeomFromTextUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
@@ -100,6 +103,7 @@ mod tests {
     async fn boundary() {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
+        ctx.register_udf(ScalarUDF::from(AsTextUdf::new()));
         ctx.register_udf(ScalarUDF::from(BoundaryUdf::new()));
         let df = ctx
             .sql("SELECT ST_AsText(ST_Boundary(ST_GeomFromText('POLYGON((1 1,0 0, -1 1, 1 1))')));")
@@ -109,7 +113,11 @@ mod tests {
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+--------------------------------------------------------------------------------+
+| ST_AsText(ST_Boundary(ST_GeomFromText(Utf8(\"POLYGON((1 1,0 0, -1 1, 1 1))\")))) |
++--------------------------------------------------------------------------------+
+| LINESTRING(1 1,0 0,-1 1,1 1)                                                   |
++--------------------------------------------------------------------------------+"
         );
     }
 }

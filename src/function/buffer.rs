@@ -1,10 +1,9 @@
-use crate::function::AsGeoJsonUdf;
 use crate::geo::{GeometryArray, GeometryArrayBuilder};
 use crate::DFResult;
 use arrow_array::cast::AsArray;
-use arrow_array::{GenericBinaryArray, LargeStringArray, OffsetSizeTrait, StringArray};
+use arrow_array::{GenericBinaryArray, OffsetSizeTrait};
 use arrow_schema::DataType;
-use datafusion_common::{internal_datafusion_err, internal_err, ScalarValue};
+use datafusion_common::{internal_datafusion_err, internal_err, DataFusionError, ScalarValue};
 use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, TypeSignature, Volatility};
 use geos::Geom;
 use geozero::wkb::WkbDialect;
@@ -24,12 +23,12 @@ impl BufferUdf {
                 vec![
                     TypeSignature::Exact(vec![
                         DataType::Binary,
-                        DataType::Float32,
+                        DataType::Float64,
                         DataType::Int32,
                     ]),
                     TypeSignature::Exact(vec![
                         DataType::LargeBinary,
-                        DataType::Float32,
+                        DataType::Float64,
                         DataType::Int32,
                     ]),
                 ],
@@ -91,10 +90,14 @@ fn build_buffer_arr<O: OffsetSizeTrait>(
 ) -> DFResult<ColumnarValue> {
     let mut builder = GeometryArrayBuilder::<O>::new(WkbDialect::Ewkb, wkb_arr.geom_len());
     for i in 0..wkb_arr.geom_len() {
-        builder.append_geos_geometry(&wkb_arr.geos_value(i)?.map(|geom| {
-            geom.buffer(width, quadsegs)
-                .map_err(|e| internal_datafusion_err!("Failed to call buffer, e: {}", e))?
-        }))?;
+        if let Some(geom) = wkb_arr.geos_value(i)? {
+            builder.append_geos_geometry(&Some(
+                geom.buffer(width, quadsegs)
+                    .map_err(|e| internal_datafusion_err!("Failed to call buffer, e: {}", e))?,
+            ))?;
+        } else {
+            builder.append_null();
+        }
     }
 
     Ok(ColumnarValue::Array(Arc::new(builder.build())))
@@ -108,7 +111,7 @@ impl Default for BufferUdf {
 
 #[cfg(test)]
 mod tests {
-    use crate::function::{BufferUdf, GeomFromTextUdf};
+    use crate::function::{AsTextUdf, BufferUdf, GeomFromTextUdf};
     use arrow::util::pretty::pretty_format_batches;
     use datafusion::logical_expr::ScalarUDF;
     use datafusion::prelude::SessionContext;
@@ -117,16 +120,21 @@ mod tests {
     async fn buffer() {
         let ctx = SessionContext::new();
         ctx.register_udf(ScalarUDF::from(GeomFromTextUdf::new()));
+        ctx.register_udf(ScalarUDF::from(AsTextUdf::new()));
         ctx.register_udf(ScalarUDF::from(BufferUdf::new()));
         let df = ctx
-            .sql("SELECT ST_Buffer(ST_GeomFromText('POINT(100 90)'), 50.0, 8);")
+            .sql("SELECT ST_AsText(ST_Buffer(ST_GeomFromText('POINT(100 90)'), 50.0, 2::Integer));")
             .await
             .unwrap();
         assert_eq!(
             pretty_format_batches(&df.collect().await.unwrap())
                 .unwrap()
                 .to_string(),
-            ""
+            "+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ST_AsText(ST_Buffer(ST_GeomFromText(Utf8(\"POINT(100 90)\")),Float64(50),Int64(2)))                                                                                                                               |
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| POLYGON((150 90,135.35533905932738 54.64466094067263,100 40,64.64466094067262 54.64466094067262,50 90,64.64466094067262 125.35533905932738,99.99999999999999 140,135.35533905932738 125.35533905932738,150 90)) |
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+"
         );
     }
 }
