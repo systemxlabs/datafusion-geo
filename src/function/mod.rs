@@ -6,6 +6,8 @@ mod as_text;
 mod boundary;
 mod box2d;
 #[cfg(feature = "geos")]
+mod buffer;
+#[cfg(feature = "geos")]
 mod covered_by;
 #[cfg(feature = "geos")]
 mod covers;
@@ -30,6 +32,8 @@ pub use as_geojson::*;
 pub use as_text::*;
 #[cfg(feature = "geos")]
 pub use boundary::*;
+#[cfg(feature = "geos")]
+pub use buffer::*;
 #[cfg(feature = "geos")]
 pub use covered_by::*;
 #[cfg(feature = "geos")]
