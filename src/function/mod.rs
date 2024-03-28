@@ -2,6 +2,8 @@
 mod as_ewkt;
 mod as_geojson;
 mod as_text;
+#[cfg(feature = "geos")]
+mod boundary;
 mod box2d;
 #[cfg(feature = "geos")]
 mod covered_by;
@@ -26,6 +28,8 @@ mod translate;
 pub use as_ewkt::*;
 pub use as_geojson::*;
 pub use as_text::*;
+#[cfg(feature = "geos")]
+pub use boundary::*;
 #[cfg(feature = "geos")]
 pub use covered_by::*;
 #[cfg(feature = "geos")]
