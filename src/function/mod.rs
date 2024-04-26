@@ -1,6 +1,7 @@
 #[cfg(feature = "geos")]
 mod as_ewkt;
 mod as_geojson;
+mod as_mvt_geom;
 mod as_text;
 #[cfg(feature = "geos")]
 mod boundary;
